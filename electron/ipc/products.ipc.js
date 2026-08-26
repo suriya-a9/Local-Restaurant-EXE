@@ -1,0 +1,1 @@
+const { ipcMain }=require("electron");const r=require("../repositories/products.repository");function registerProductsIpc(){ipcMain.handle("products:getAll",(_,x)=>r.getAllProducts(x.clientId,x.locationId));ipcMain.handle("products:create",(_,d)=>r.createProduct(d));ipcMain.handle("products:update",(_,d)=>r.updateProduct(d))}module.exports={registerProductsIpc};

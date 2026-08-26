@@ -1,0 +1,1 @@
+const { ipcMain }=require("electron");const r=require("../repositories/taxRates.repository");function registerTaxRatesIpc(){ipcMain.handle("taxRates:getAll",(_,id)=>r.getAllTaxRates(id));ipcMain.handle("taxRates:create",(_,d)=>r.createTaxRate(d))}module.exports={registerTaxRatesIpc};

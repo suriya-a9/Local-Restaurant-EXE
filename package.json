@@ -1,0 +1,55 @@
+{
+  "name": "restaurant-pos",
+  "version": "1.0.0",
+  "main": "electron/main.js",
+  "scripts": {
+    "electron": "electron .",
+    "build:frontend": "cd frontend && npm run build",
+    "build:exe": "npm run build:frontend && electron-builder --win",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/suriya-a9/Electron-Local-Restaurant.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/suriya-a9/Electron-Local-Restaurant/issues"
+  },
+  "homepage": "https://github.com/suriya-a9/Electron-Local-Restaurant#readme",
+  "description": "",
+  "devDependencies": {
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3"
+  },
+  "build": {
+    "appId": "com.restaurant.pos",
+    "productName": "Restaurant POS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
