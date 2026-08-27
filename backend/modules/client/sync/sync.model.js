@@ -18,8 +18,8 @@ async function upsertSnapshot(clientId, snapshot) {
           postal_code=EXCLUDED.postal_code,phone=EXCLUDED.phone,email=EXCLUDED.email,is_primary=EXCLUDED.is_primary,
           updated_at=EXCLUDED.updated_at
         WHERE business_locations.client_id=$2`,
-        [r.id,clientId,r.name,r.code,r.gst_number||null,r.address||null,r.city||null,r.state||null,r.country||null,
-         r.postal_code||null,r.phone||null,r.email||null,!!r.is_primary,r.created_at||new Date(),r.updated_at||new Date()]);
+        [r.id, clientId, r.name, r.code, r.gst_number || null, r.address || null, r.city || null, r.state || null, r.country || null,
+        r.postal_code || null, r.phone || null, r.email || null, !!r.is_primary, r.created_at || new Date(), r.updated_at || new Date()]);
       count("business_locations");
     }
 
@@ -27,7 +27,7 @@ async function upsertSnapshot(clientId, snapshot) {
       await db.query(`INSERT INTO categories(id,client_id,name,description,created_at,updated_at)
         VALUES($1,$2,$3,$4,$5,$6)
         ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,updated_at=EXCLUDED.updated_at
-        WHERE categories.client_id=$2`, [r.id,clientId,r.name,r.description||null,r.created_at||new Date(),r.updated_at||new Date()]);
+        WHERE categories.client_id=$2`, [r.id, clientId, r.name, r.description || null, r.created_at || new Date(), r.updated_at || new Date()]);
       count("categories");
     }
 
@@ -35,7 +35,7 @@ async function upsertSnapshot(clientId, snapshot) {
       await db.query(`INSERT INTO sub_categories(id,client_id,category_id,name,created_at,updated_at)
         VALUES($1,$2,$3,$4,$5,$6)
         ON CONFLICT(id) DO UPDATE SET category_id=EXCLUDED.category_id,name=EXCLUDED.name,updated_at=EXCLUDED.updated_at
-        WHERE sub_categories.client_id=$2`, [r.id,clientId,r.category_id,r.name,r.created_at||new Date(),r.updated_at||new Date()]);
+        WHERE sub_categories.client_id=$2`, [r.id, clientId, r.category_id, r.name, r.created_at || new Date(), r.updated_at || new Date()]);
       count("sub_categories");
     }
 
@@ -44,7 +44,7 @@ async function upsertSnapshot(clientId, snapshot) {
         VALUES($1,$2,$3,$4,$5,$6,$7)
         ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,short_name=EXCLUDED.short_name,allow_decimal=EXCLUDED.allow_decimal,
           updated_at=EXCLUDED.updated_at WHERE units.client_id=$2`,
-        [r.id,clientId,r.name,r.short_name,!!r.allow_decimal,r.created_at||new Date(),r.updated_at||new Date()]);
+        [r.id, clientId, r.name, r.short_name, !!r.allow_decimal, r.created_at || new Date(), r.updated_at || new Date()]);
       count("units");
     }
 
@@ -53,7 +53,7 @@ async function upsertSnapshot(clientId, snapshot) {
         VALUES($1,$2,$3,$4,$5,$6,$7,$8)
         ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,rate_percent=EXCLUDED.rate_percent,tax_type=EXCLUDED.tax_type,
           is_active=EXCLUDED.is_active,updated_at=EXCLUDED.updated_at WHERE tax_rates.client_id=$2`,
-        [r.id,clientId,r.name,r.rate_percent,r.tax_type||"gst",!!r.is_active,r.created_at||new Date(),r.updated_at||new Date()]);
+        [r.id, clientId, r.name, r.rate_percent, r.tax_type || "gst", !!r.is_active, r.created_at || new Date(), r.updated_at || new Date()]);
       count("tax_rates");
     }
 
@@ -63,7 +63,7 @@ async function upsertSnapshot(clientId, snapshot) {
         ON CONFLICT(id) DO UPDATE SET business_location_id=EXCLUDED.business_location_id,name=EXCLUDED.name,
           capacity=EXCLUDED.capacity,status=EXCLUDED.status,updated_at=EXCLUDED.updated_at
         WHERE restaurant_tables.client_id=$2`,
-        [r.id,clientId,r.business_location_id,r.name,r.capacity??null,r.status||"available",r.created_at||new Date(),r.updated_at||new Date()]);
+        [r.id, clientId, r.business_location_id, r.name, r.capacity ?? null, r.status || "available", r.created_at || new Date(), r.updated_at || new Date()]);
       count("restaurant_tables");
     }
 
@@ -73,7 +73,7 @@ async function upsertSnapshot(clientId, snapshot) {
         ON CONFLICT(id) DO UPDATE SET business_location_id=EXCLUDED.business_location_id,name=EXCLUDED.name,
           mobile_number=EXCLUDED.mobile_number,address=EXCLUDED.address,updated_at=EXCLUDED.updated_at
         WHERE customers.client_id=$2`,
-        [r.id,clientId,r.business_location_id,r.name,r.mobile_number,r.address||null,r.created_at||new Date(),r.updated_at||new Date()]);
+        [r.id, clientId, r.business_location_id, r.name, r.mobile_number, r.address || null, r.created_at || new Date(), r.updated_at || new Date()]);
       count("customers");
     }
 
@@ -90,8 +90,8 @@ async function upsertSnapshot(clientId, snapshot) {
           name=EXCLUDED.name,email=EXCLUDED.email,password=EXCLUDED.password,phone=EXCLUDED.phone,
           designation=EXCLUDED.designation,date_of_joining=EXCLUDED.date_of_joining,salary=EXCLUDED.salary,
           updated_at=EXCLUDED.updated_at WHERE employees.client_id=$2`,
-        [r.id,clientId,r.business_location_id,roleId,r.name,r.email,r.password,r.phone||null,r.designation||null,
-         r.date_of_joining||null,r.salary??null,r.created_at||new Date(),r.updated_at||new Date()]);
+        [r.id, clientId, r.business_location_id, roleId, r.name, r.email, r.password, r.phone || null, r.designation || null,
+        r.date_of_joining || null, r.salary ?? null, r.created_at || new Date(), r.updated_at || new Date()]);
       count("employees");
     }
 
@@ -111,10 +111,10 @@ async function upsertSnapshot(clientId, snapshot) {
           default_selling_price_exc_tax=EXCLUDED.default_selling_price_exc_tax,
           default_selling_price_inc_tax=EXCLUDED.default_selling_price_inc_tax,updated_at=EXCLUDED.updated_at
         WHERE products.client_id=$2`,
-        [r.id,clientId,r.name,r.sku,r.barcode||null,r.shortcut_number??null,r.image||null,r.unit_id||null,r.category_id||null,r.sub_category_id||null,
-         r.applicable_tax_id||null,r.product_type||"single",r.selling_price_tax_type||"exclusive",!!r.enable_stock,
-         r.alert_quantity??null,r.margin_percent||0,r.default_purchase_price_exc_tax||0,r.default_purchase_price_inc_tax||0,
-         r.default_selling_price_exc_tax||0,r.default_selling_price_inc_tax||0,r.created_at||new Date(),r.updated_at||new Date()]);
+        [r.id, clientId, r.name, r.sku, r.barcode || null, r.shortcut_number ?? null, r.image || null, r.unit_id || null, r.category_id || null, r.sub_category_id || null,
+        r.applicable_tax_id || null, r.product_type || "single", r.selling_price_tax_type || "exclusive", !!r.enable_stock,
+        r.alert_quantity ?? null, r.margin_percent || 0, r.default_purchase_price_exc_tax || 0, r.default_purchase_price_inc_tax || 0,
+        r.default_selling_price_exc_tax || 0, r.default_selling_price_inc_tax || 0, r.created_at || new Date(), r.updated_at || new Date()]);
       count("products");
     }
 
@@ -122,7 +122,7 @@ async function upsertSnapshot(clientId, snapshot) {
     if (productIds.length) {
       await db.query(`DELETE FROM product_business_locations WHERE product_id = ANY($1::uuid[])`, [productIds]);
       for (const r of rows("product_business_locations")) {
-        await db.query(`INSERT INTO product_business_locations(product_id,business_location_id) VALUES($1,$2) ON CONFLICT DO NOTHING`, [r.product_id,r.business_location_id]);
+        await db.query(`INSERT INTO product_business_locations(product_id,business_location_id) VALUES($1,$2) ON CONFLICT DO NOTHING`, [r.product_id, r.business_location_id]);
         count("product_business_locations");
       }
     }
@@ -135,8 +135,8 @@ async function upsertSnapshot(clientId, snapshot) {
           billing_printer_ip=EXCLUDED.billing_printer_ip,billing_printer_port=EXCLUDED.billing_printer_port,
           default_kot_ip=EXCLUDED.default_kot_ip,default_kot_port=EXCLUDED.default_kot_port,has_extra_kot=EXCLUDED.has_extra_kot,
           updated_at=EXCLUDED.updated_at WHERE kot_printer_settings.client_id=$2`,
-        [r.id,clientId,r.business_location_id,r.system_ip||null,r.billing_printer_ip||null,r.billing_printer_port??9100,
-         r.default_kot_ip||null,r.default_kot_port??9100,r.has_extra_kot ? "yes" : "no",r.created_at||new Date(),r.updated_at||new Date()]);
+        [r.id, clientId, r.business_location_id, r.system_ip || null, r.billing_printer_ip || null, r.billing_printer_port ?? 9100,
+        r.default_kot_ip || null, r.default_kot_port ?? 9100, r.has_extra_kot ? "yes" : "no", r.created_at || new Date(), r.updated_at || new Date()]);
       count("kot_printer_settings");
     }
 
@@ -147,7 +147,7 @@ async function upsertSnapshot(clientId, snapshot) {
         await db.query(`INSERT INTO kot_printer_stations(id,kot_printer_settings_id,category_id,printer_ip,printer_port,created_at,updated_at)
           VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET category_id=EXCLUDED.category_id,
           printer_ip=EXCLUDED.printer_ip,printer_port=EXCLUDED.printer_port,updated_at=EXCLUDED.updated_at`,
-          [r.id,r.kot_printer_settings_id,r.category_id||null,r.printer_ip,r.printer_port,r.created_at||new Date(),r.updated_at||new Date()]);
+          [r.id, r.kot_printer_settings_id, r.category_id || null, r.printer_ip, r.printer_port, r.created_at || new Date(), r.updated_at || new Date()]);
         count("kot_printer_stations");
       }
     }
@@ -162,9 +162,9 @@ async function upsertSnapshot(clientId, snapshot) {
           subtotal=EXCLUDED.subtotal,discount_amount=EXCLUDED.discount_amount,order_tax_amount=EXCLUDED.order_tax_amount,
           round_off_amount=EXCLUDED.round_off_amount,total_amount=EXCLUDED.total_amount,payment_status=EXCLUDED.payment_status,
           status=EXCLUDED.status,updated_at=EXCLUDED.updated_at WHERE pos_sales.client_id=$2`,
-        [r.id,clientId,r.business_location_id,r.invoice_number,r.sale_number??null,r.sale_type||"dining",
-         r.customer_name||"Walk-In Customer",r.subtotal||0,r.discount_amount||0,r.order_tax_amount||0,r.round_off_amount||0,
-         r.total_amount||0,r.payment_status||"paid",r.status||"completed",r.created_at||new Date(),r.updated_at||new Date()]);
+        [r.id, clientId, r.business_location_id, r.invoice_number, r.sale_number ?? null, r.sale_type || "dining",
+        r.customer_name || "Walk-In Customer", r.subtotal || 0, r.discount_amount || 0, r.order_tax_amount || 0, r.round_off_amount || 0,
+        r.total_amount || 0, r.payment_status || "paid", r.status || "completed", r.created_at || new Date(), r.updated_at || new Date()]);
       count("pos_sales");
     }
 
@@ -173,14 +173,14 @@ async function upsertSnapshot(clientId, snapshot) {
         VALUES($1,$2,$3,$4,$5,$6,$7,$8)
         ON CONFLICT(id) DO UPDATE SET quantity=EXCLUDED.quantity,unit_price_inc_tax=EXCLUDED.unit_price_inc_tax,
           discount_amount=EXCLUDED.discount_amount,line_total=EXCLUDED.line_total`,
-        [r.id,r.sale_id,r.product_id,r.quantity,r.unit_price_inc_tax,r.discount_amount||0,r.line_total,r.created_at||new Date()]);
+        [r.id, r.sale_id, r.product_id, r.quantity, r.unit_price_inc_tax, r.discount_amount || 0, r.line_total, r.created_at || new Date()]);
       count("pos_sale_items");
     }
 
     for (const r of rows("pos_sale_payments")) {
       await db.query(`INSERT INTO pos_sale_payments(id,sale_id,payment_method,amount,created_at)
         VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO UPDATE SET payment_method=EXCLUDED.payment_method,amount=EXCLUDED.amount`,
-        [r.id,r.sale_id,r.payment_method,r.amount,r.created_at||new Date()]);
+        [r.id, r.sale_id, r.payment_method, r.amount, r.created_at || new Date()]);
       count("pos_sale_payments");
     }
 
@@ -194,4 +194,111 @@ async function upsertSnapshot(clientId, snapshot) {
   }
 }
 
-module.exports = { upsertSnapshot };
+
+
+async function getServerSnapshot(clientId) {
+  const db = await pool.connect();
+  try {
+    const one = async (sql, params = [clientId]) => (await db.query(sql, params)).rows;
+
+    const business_locations = await one(
+      `SELECT * FROM business_locations WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+    const categories = await one(
+      `SELECT * FROM categories WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+    const sub_categories = await one(
+      `SELECT * FROM sub_categories WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+    const units = await one(
+      `SELECT * FROM units WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+    const tax_rates = await one(
+      `SELECT * FROM tax_rates WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+
+    const roles = await one(
+      `SELECT DISTINCT r.*
+       FROM roles r
+       JOIN employees e ON e.role_id = r.id
+       WHERE e.client_id = $1
+       ORDER BY r.name ASC`
+    );
+
+    const employees = await one(
+      `SELECT e.*
+       FROM employees e
+       WHERE e.client_id = $1
+       ORDER BY e.created_at ASC`
+    );
+
+    const products = await one(
+      `SELECT * FROM products WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+    const product_business_locations = await one(
+      `SELECT pbl.*
+       FROM product_business_locations pbl
+       JOIN products p ON p.id = pbl.product_id
+       WHERE p.client_id = $1`
+    );
+
+    const customers = await one(
+      `SELECT * FROM customers WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+    const restaurant_tables = await one(
+      `SELECT * FROM restaurant_tables WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+
+    const kot_printer_settings = await one(
+      `SELECT * FROM kot_printer_settings WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+    const kot_printer_stations = await one(
+      `SELECT kps.*
+       FROM kot_printer_stations kps
+       JOIN kot_printer_settings kpt ON kpt.id = kps.kot_printer_settings_id
+       WHERE kpt.client_id = $1
+       ORDER BY kps.created_at ASC`
+    );
+
+    const pos_sales = await one(
+      `SELECT * FROM pos_sales WHERE client_id = $1 ORDER BY created_at ASC`
+    );
+    const pos_sale_items = await one(
+      `SELECT psi.*
+       FROM pos_sale_items psi
+       JOIN pos_sales ps ON ps.id = psi.sale_id
+       WHERE ps.client_id = $1
+       ORDER BY psi.created_at ASC`
+    );
+    const pos_sale_payments = await one(
+      `SELECT psp.*
+       FROM pos_sale_payments psp
+       JOIN pos_sales ps ON ps.id = psp.sale_id
+       WHERE ps.client_id = $1
+       ORDER BY psp.created_at ASC`
+    );
+
+    return {
+      roles,
+      business_locations,
+      categories,
+      sub_categories,
+      units,
+      tax_rates,
+      employees,
+      products,
+      product_business_locations,
+      customers,
+      restaurant_tables,
+      kot_printer_settings,
+      kot_printer_stations,
+      pos_sales,
+      pos_sale_items,
+      pos_sale_payments,
+    };
+  } finally {
+    db.release();
+  }
+}
+
+module.exports = { upsertSnapshot, getServerSnapshot };

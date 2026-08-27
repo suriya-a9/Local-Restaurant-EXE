@@ -61,8 +61,6 @@ export default function Login({ portal = "client", endpoint = "/clientAuth/login
                     throw new Error("Invalid login response");
                 }
 
-                // Cache a verified client login locally so the same account can sign in
-                // when this Electron device is offline later. Admin portal stays server-only.
                 if (portal === "client" && window.electronAPI?.auth) {
                     await window.electronAPI.auth.cacheLogin({
                         name: formData.name,
@@ -78,7 +76,11 @@ export default function Login({ portal = "client", endpoint = "/clientAuth/login
                             token: authToken,
                             clientId: user.client_id ?? user.id,
                         });
-                        window.electronAPI.sync.now().catch(() => { });
+
+                        const syncResult = await window.electronAPI.sync.now();
+                        if (!syncResult?.success) {
+                            console.warn("Initial device sync did not complete:", syncResult);
+                        }
                     }
                 }
 
@@ -89,8 +91,6 @@ export default function Login({ portal = "client", endpoint = "/clientAuth/login
                 navigate(portal === "admin" ? "/dashboard" : "/admin-dashboard", { replace: true });
             }
         } catch (error) {
-            // If the cloud API cannot be reached, try the credentials cached on this device.
-            // We do not fall back for an HTTP 4xx/5xx response because the server did answer.
             if (portal === "client" && window.electronAPI?.auth && !error?.response) {
                 try {
                     const offlineAuth = await window.electronAPI.auth.loginOffline(
@@ -171,7 +171,7 @@ export default function Login({ portal = "client", endpoint = "/clientAuth/login
                     name={isAdmin ? "email" : "name"}
                     value={isAdmin ? formData.email : formData.name}
                     onChange={handleChange}
-                    placeholder={isAdmin ? "Admin email" : "Client or staff name"}
+                    placeholder={isAdmin ? "Admin email" : "User name"}
                     className={`w-full h-14 rounded-lg border px-4 outline-none transition-colors
                         ${(isAdmin ? errors.email : (errors.name || errors.email))
                             ? "border-red-500"

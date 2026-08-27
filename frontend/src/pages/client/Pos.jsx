@@ -133,6 +133,7 @@ const POS = () => {
     const [productSearch, setProductSearch] = useState("");
     const [productPage, setProductPage] = useState(1);
     const searchInputRef = useRef(null);
+    const productShortcutTimerRef = useRef(null);
     const enterShortcutTimerRef = useRef(null);
     const shortcutPaymentRef = useRef(null);
     const [customerName, setCustomerName] = useState("Walk-In Customer");
@@ -180,6 +181,11 @@ const POS = () => {
 
     useEffect(() => {
         searchInputRef.current?.focus();
+        return () => {
+            if (productShortcutTimerRef.current) {
+                clearTimeout(productShortcutTimerRef.current);
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -517,6 +523,10 @@ const POS = () => {
             event.preventDefault();
 
             if (target === searchInputRef.current && productSearch.trim() && filteredProducts.length > 0) {
+                if (productShortcutTimerRef.current) {
+                    clearTimeout(productShortcutTimerRef.current);
+                    productShortcutTimerRef.current = null;
+                }
                 addToCart(filteredProducts[0]);
                 return;
             }
@@ -806,8 +816,21 @@ const POS = () => {
                                     const value = e.target.value;
                                     setProductSearch(value);
                                     setProductPage(1);
-                                    const shortcutProduct = products.find((product) => String(product.shortcut_number || "") === value.trim());
-                                    if (shortcutProduct) addToCart(shortcutProduct);
+                                    if (productShortcutTimerRef.current) {
+                                        clearTimeout(productShortcutTimerRef.current);
+                                        productShortcutTimerRef.current = null;
+                                    }
+
+                                    const shortcut = value.trim();
+                                    if (/^\d+$/.test(shortcut)) {
+                                        productShortcutTimerRef.current = setTimeout(() => {
+                                            productShortcutTimerRef.current = null;
+                                            const shortcutProduct = products.find(
+                                                (product) => String(product.shortcut_number || "") === shortcut
+                                            );
+                                            if (shortcutProduct) addToCart(shortcutProduct);
+                                        }, 300);
+                                    }
                                 }}
                                 placeholder="Scan barcode or search product"
                                 className="bg-transparent outline-none w-full text-slate-700 placeholder-slate-400"
