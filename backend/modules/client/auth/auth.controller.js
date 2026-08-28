@@ -79,6 +79,7 @@ const login = async (req, res) => {
                         id: employee.client_id,
                         employee_id: employee.id,
                         client_id: employee.client_id,
+                        client_name: employee.client_name,
                         name: employee.name,
                         email: employee.email,
                         role: employee.role,

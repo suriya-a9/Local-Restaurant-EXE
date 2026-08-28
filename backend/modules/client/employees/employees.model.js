@@ -94,6 +94,7 @@ const findEmployeeLoginByName = async (name) => {
             e.name,
             e.email,
             e.password,
+            c.name AS client_name,
             c.status AS client_status,
             json_build_object('id', bl.id, 'name', bl.name, 'code', bl.code) AS business_location,
             r.name AS role

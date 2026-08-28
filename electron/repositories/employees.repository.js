@@ -1,11 +1,133 @@
 const { getDatabase } = require("../database/sqlite");
 const bcrypt = require("bcryptjs");
-function shape(r){if(!r)return null;return{...r,business_location:{id:r.business_location_id,name:r.business_location_name,code:r.business_location_code},role:{id:r.role_id,name:r.role_name}}}
-function getAllEmployees(clientId){return getDatabase().prepare(`SELECT e.id,e.client_id,e.business_location_id,e.role_id,e.name,e.email,e.phone,e.designation,e.date_of_joining,e.salary,e.created_at,e.updated_at,bl.name business_location_name,bl.code business_location_code,r.name role_name FROM employees e JOIN business_locations bl ON bl.id=e.business_location_id JOIN roles r ON r.id=e.role_id WHERE e.client_id=? ORDER BY e.created_at DESC`).all(clientId).map(shape)}
-function getEmployeeById(id,clientId){return shape(getDatabase().prepare(`SELECT e.id,e.client_id,e.business_location_id,e.role_id,e.name,e.email,e.phone,e.designation,e.date_of_joining,e.salary,e.created_at,e.updated_at,bl.name business_location_name,bl.code business_location_code,r.name role_name FROM employees e JOIN business_locations bl ON bl.id=e.business_location_id JOIN roles r ON r.id=e.role_id WHERE e.id=? AND e.client_id=?`).get(id,clientId))}
-function roleId(name){const db=getDatabase();let r=db.prepare("SELECT id FROM roles WHERE lower(name)=lower(?)").get(name);if(!r){const id=`local-role-${String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g,"-")}`;db.prepare("INSERT OR IGNORE INTO roles(id,name,created_at,updated_at) VALUES(?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)").run(id,String(name).trim());r={id};}return r.id}
-function createEmployee(d){const hashed=bcrypt.hashSync(d.password,10);getDatabase().prepare(`INSERT INTO employees(id,client_id,business_location_id,role_id,name,email,password,phone,designation,date_of_joining,salary,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`).run(d.id,d.client_id,d.business_location_id,roleId(d.role),d.name,d.email,hashed,d.phone||null,d.designation||null,d.date_of_joining||null,d.salary??null);return{success:true,id:d.id}}
-function updateEmployee(d){const db=getDatabase();db.transaction(()=>{db.prepare(`UPDATE employees SET business_location_id=?,role_id=?,name=?,email=?,phone=?,designation=?,date_of_joining=?,salary=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND client_id=?`).run(d.business_location_id,roleId(d.role),d.name,d.email,d.phone||null,d.designation||null,d.date_of_joining||null,d.salary??null,d.id,d.client_id);if(d.password)db.prepare("UPDATE employees SET password=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND client_id=?").run(bcrypt.hashSync(d.password,10),d.id,d.client_id)})();return{success:true}}
-function deleteEmployee(id,clientId){getDatabase().prepare("DELETE FROM employees WHERE id=? AND client_id=?").run(id,clientId);return{success:true}}
-function getRoles(){const db=getDatabase();const rows=db.prepare("SELECT id,name FROM roles ORDER BY name").all();if(rows.length)return rows;return [{id:"local-role-cashier",name:"cashier"},{id:"local-role-manager",name:"manager"},{id:"local-role-waiter",name:"waiter"}]}
-module.exports={getAllEmployees,getEmployeeById,createEmployee,updateEmployee,deleteEmployee,getRoles};
+
+function shape(r) {
+    if (!r) return null;
+    return {
+        ...r,
+        business_location: {
+            id: r.business_location_id,
+            name: r.business_location_name,
+            code: r.business_location_code,
+        },
+        role: { id: r.role_id, name: r.role_name },
+    };
+}
+
+function getConfig(key) {
+    return getDatabase().prepare("SELECT value FROM app_config WHERE key=?").get(key)?.value || null;
+}
+
+function buildEmployeeName(clientId, employeeName) {
+    const configuredClientId = getConfig("sync_client_id");
+    const clientName = getConfig("sync_client_name");
+
+    if (!clientName || (configuredClientId && String(configuredClientId) !== String(clientId))) {
+        throw new Error("Client name is not configured on this device. Please log in online once and try again.");
+    }
+
+    const prefix = String(clientName).trim().replace(/\s+/g, "").slice(0, 2).toUpperCase();
+    const cleanName = String(employeeName || "").trim().replace(/\s+/g, " ");
+
+    if (!cleanName) throw new Error("Employee name is required");
+    if (!prefix) return cleanName;
+
+    const prefixWithSpace = `${prefix} `;
+    if (cleanName.toUpperCase().startsWith(prefixWithSpace)) {
+        return `${prefix} ${cleanName.slice(prefixWithSpace.length).trim()}`;
+    }
+
+    return `${prefix} ${cleanName}`;
+}
+
+function assertUniqueName(clientId, fullName, excludeId = null) {
+    const db = getDatabase();
+    const existing = excludeId
+        ? db.prepare(`SELECT id FROM employees WHERE client_id=? AND LOWER(name)=LOWER(?) AND id<>? LIMIT 1`).get(clientId, fullName, excludeId)
+        : db.prepare(`SELECT id FROM employees WHERE client_id=? AND LOWER(name)=LOWER(?) LIMIT 1`).get(clientId, fullName);
+
+    if (existing) {
+        throw new Error("An employee with this name already exists");
+    }
+}
+
+function getAllEmployees(clientId) {
+    return getDatabase()
+        .prepare(`SELECT e.id,e.client_id,e.business_location_id,e.role_id,e.name,e.email,e.phone,e.designation,e.date_of_joining,e.salary,e.created_at,e.updated_at,bl.name business_location_name,bl.code business_location_code,r.name role_name FROM employees e JOIN business_locations bl ON bl.id=e.business_location_id JOIN roles r ON r.id=e.role_id WHERE e.client_id=? ORDER BY e.created_at DESC`)
+        .all(clientId)
+        .map(shape);
+}
+
+function getEmployeeById(id, clientId) {
+    return shape(
+        getDatabase()
+            .prepare(`SELECT e.id,e.client_id,e.business_location_id,e.role_id,e.name,e.email,e.phone,e.designation,e.date_of_joining,e.salary,e.created_at,e.updated_at,bl.name business_location_name,bl.code business_location_code,r.name role_name FROM employees e JOIN business_locations bl ON bl.id=e.business_location_id JOIN roles r ON r.id=e.role_id WHERE e.id=? AND e.client_id=?`)
+            .get(id, clientId)
+    );
+}
+
+function roleId(name) {
+    const db = getDatabase();
+    let r = db.prepare("SELECT id FROM roles WHERE lower(name)=lower(?)").get(name);
+    if (!r) {
+        const id = `local-role-${String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+        db.prepare("INSERT OR IGNORE INTO roles(id,name,created_at,updated_at) VALUES(?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)").run(id, String(name).trim());
+        r = { id };
+    }
+    return r.id;
+}
+
+function createEmployee(d) {
+    const fullName = buildEmployeeName(d.client_id, d.name);
+    assertUniqueName(d.client_id, fullName);
+
+    const hashed = bcrypt.hashSync(d.password, 10);
+    getDatabase()
+        .prepare(`INSERT INTO employees(id,client_id,business_location_id,role_id,name,email,password,phone,designation,date_of_joining,salary,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`)
+        .run(d.id, d.client_id, d.business_location_id, roleId(d.role), fullName, d.email, hashed, d.phone || null, d.designation || null, d.date_of_joining || null, d.salary ?? null);
+
+    return { success: true, id: d.id, name: fullName };
+}
+
+function updateEmployee(d) {
+    const db = getDatabase();
+    const fullName = buildEmployeeName(d.client_id, d.name);
+    assertUniqueName(d.client_id, fullName, d.id);
+
+    db.transaction(() => {
+        db.prepare(`UPDATE employees SET business_location_id=?,role_id=?,name=?,email=?,phone=?,designation=?,date_of_joining=?,salary=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND client_id=?`)
+            .run(d.business_location_id, roleId(d.role), fullName, d.email, d.phone || null, d.designation || null, d.date_of_joining || null, d.salary ?? null, d.id, d.client_id);
+
+        if (d.password) {
+            db.prepare("UPDATE employees SET password=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND client_id=?")
+                .run(bcrypt.hashSync(d.password, 10), d.id, d.client_id);
+        }
+    })();
+
+    return { success: true, name: fullName };
+}
+
+function deleteEmployee(id, clientId) {
+    getDatabase().prepare("DELETE FROM employees WHERE id=? AND client_id=?").run(id, clientId);
+    return { success: true };
+}
+
+function getRoles() {
+    const db = getDatabase();
+    const rows = db.prepare("SELECT id,name FROM roles ORDER BY name").all();
+    if (rows.length) return rows;
+    return [
+        { id: "local-role-cashier", name: "cashier" },
+        { id: "local-role-manager", name: "manager" },
+        { id: "local-role-waiter", name: "waiter" },
+    ];
+}
+
+module.exports = {
+    getAllEmployees,
+    getEmployeeById,
+    createEmployee,
+    updateEmployee,
+    deleteEmployee,
+    getRoles,
+};

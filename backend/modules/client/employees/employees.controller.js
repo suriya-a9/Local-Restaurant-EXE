@@ -1,4 +1,25 @@
 const bcrypt = require("bcryptjs");
+const { findClientById } = require("../../admin/clients/clients.model");
+
+function buildEmployeeName(clientName, employeeName) {
+    const prefix = String(clientName || "")
+        .trim()
+        .replace(/\s+/g, "")
+        .slice(0, 2)
+        .toUpperCase();
+
+    const cleanName = String(employeeName || "").trim().replace(/\s+/g, " ");
+
+    if (!prefix || !cleanName) return cleanName;
+
+    const prefixWithSpace = `${prefix} `;
+
+    if (cleanName.toUpperCase().startsWith(prefixWithSpace)) {
+        return `${prefix} ${cleanName.slice(prefixWithSpace.length).trim()}`;
+    }
+
+    return `${prefix} ${cleanName}`;
+}
 
 const {
     getAllRoles,
@@ -64,6 +85,14 @@ async function validateEmployeePayload(req) {
 const addEmployee = async (req, res) => {
     try {
         const client_id = req.user.id;
+        const client = await findClientById(client_id);
+
+        if (!client) {
+            return res.status(404).json({
+                success: false,
+                message: "Client not found",
+            });
+        }
 
         const {
             errors,
@@ -111,6 +140,8 @@ const addEmployee = async (req, res) => {
             });
         }
 
+        const fullEmployeeName = buildEmployeeName(client.name, name);
+
         const existing = await findEmployeeByEmail(client_id, email.trim());
 
         if (existing) {
@@ -121,7 +152,7 @@ const addEmployee = async (req, res) => {
             });
         }
 
-        const existingName = await findEmployeeByName(client_id, name.trim());
+        const existingName = await findEmployeeByName(client_id, fullEmployeeName);
         if (existingName) {
             return res.status(409).json({
                 success: false,
@@ -136,7 +167,7 @@ const addEmployee = async (req, res) => {
             client_id,
             business_location_id,
             role_id: roleRow.id,
-            name: name.trim(),
+            name: fullEmployeeName,
             email: email.trim(),
             password: hashedPassword,
             phone: phone ? phone.trim() : null,
@@ -229,6 +260,15 @@ const editEmployee = async (req, res) => {
             });
         }
 
+        const client = await findClientById(client_id);
+
+        if (!client) {
+            return res.status(404).json({
+                success: false,
+                message: "Client not found",
+            });
+        }
+
         const {
             errors,
             name,
@@ -269,6 +309,8 @@ const editEmployee = async (req, res) => {
             });
         }
 
+        const fullEmployeeName = buildEmployeeName(client.name, name);
+
         const emailConflict = await findEmployeeByEmailExcludingId(client_id, email.trim(), id);
 
         if (emailConflict) {
@@ -279,7 +321,7 @@ const editEmployee = async (req, res) => {
             });
         }
 
-        const nameConflict = await findEmployeeByNameExcludingId(client_id, name.trim(), id);
+        const nameConflict = await findEmployeeByNameExcludingId(client_id, fullEmployeeName, id);
         if (nameConflict) {
             return res.status(409).json({
                 success: false,
@@ -291,7 +333,7 @@ const editEmployee = async (req, res) => {
         const employee = await updateEmployee(id, {
             business_location_id,
             role_id: roleRow.id,
-            name: name.trim(),
+            name: fullEmployeeName,
             email: email.trim(),
             phone: phone ? phone.trim() : null,
             designation: designation ? designation.trim() : null,

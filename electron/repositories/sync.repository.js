@@ -9,9 +9,10 @@ function getConfig(key) {
   return getDatabase().prepare("SELECT value FROM app_config WHERE key=?").get(key)?.value || null;
 }
 
-function configure({ apiBaseUrl, token, clientId }) {
+function configure({ apiBaseUrl, token, clientId, clientName }) {
   if (apiBaseUrl) setConfig("sync_api_base_url", String(apiBaseUrl).replace(/\/$/, ""));
   if (clientId) setConfig("sync_client_id", clientId);
+  if (clientName) setConfig("sync_client_name", clientName);
   if (token && !String(token).startsWith("offline:")) setConfig("sync_token", token);
   return getStatus();
 }

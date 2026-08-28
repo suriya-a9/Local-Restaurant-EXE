@@ -75,6 +75,7 @@ export default function Login({ portal = "client", endpoint = "/clientAuth/login
                             apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
                             token: authToken,
                             clientId: user.client_id ?? user.id,
+                            clientName: user.client_name ?? user.name,
                         });
 
                         const syncResult = await window.electronAPI.sync.now();

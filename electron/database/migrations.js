@@ -1,11 +1,11 @@
 function runMigrations(db) {
-    db.pragma("foreign_keys = ON");
+  db.pragma("foreign_keys = ON");
 
-    // =========================================================
-    // LOCAL APPLICATION CONFIG
-    // =========================================================
+  // =========================================================
+  // LOCAL APPLICATION CONFIG
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS app_config (
       key TEXT PRIMARY KEY,
       value TEXT,
@@ -13,11 +13,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // LOCAL OFFLINE LOGIN CACHE
-    // =========================================================
+  // =========================================================
+  // LOCAL OFFLINE LOGIN CACHE
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS local_auth_users (
       name TEXT PRIMARY KEY,
       password_hash TEXT NOT NULL,
@@ -28,19 +28,19 @@ function runMigrations(db) {
     );
   `);
 
-    const localAuthColumns = db.prepare("PRAGMA table_info(local_auth_users)").all();
-    if (localAuthColumns.some((column) => column.name === "email") && !localAuthColumns.some((column) => column.name === "name")) {
-      db.exec("ALTER TABLE local_auth_users RENAME COLUMN email TO name");
-    }
-    if (!localAuthColumns.some((column) => column.name === "server_token")) {
-      db.exec("ALTER TABLE local_auth_users ADD COLUMN server_token TEXT");
-    }
+  const localAuthColumns = db.prepare("PRAGMA table_info(local_auth_users)").all();
+  if (localAuthColumns.some((column) => column.name === "email") && !localAuthColumns.some((column) => column.name === "name")) {
+    db.exec("ALTER TABLE local_auth_users RENAME COLUMN email TO name");
+  }
+  if (!localAuthColumns.some((column) => column.name === "server_token")) {
+    db.exec("ALTER TABLE local_auth_users ADD COLUMN server_token TEXT");
+  }
 
-    // =========================================================
-    // ROLES
-    // =========================================================
+  // =========================================================
+  // ROLES
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS roles (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
@@ -49,11 +49,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // BUSINESS LOCATIONS
-    // =========================================================
+  // =========================================================
+  // BUSINESS LOCATIONS
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS business_locations (
       id TEXT PRIMARY KEY,
       client_id TEXT NOT NULL,
@@ -80,11 +80,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // CATEGORIES
-    // =========================================================
+  // =========================================================
+  // CATEGORIES
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
       client_id TEXT NOT NULL,
@@ -99,11 +99,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // SUB CATEGORIES
-    // =========================================================
+  // =========================================================
+  // SUB CATEGORIES
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS sub_categories (
       id TEXT PRIMARY KEY,
       client_id TEXT NOT NULL,
@@ -122,11 +122,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // UNITS
-    // =========================================================
+  // =========================================================
+  // UNITS
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS units (
       id TEXT PRIMARY KEY,
       client_id TEXT NOT NULL,
@@ -144,11 +144,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // TAX RATES
-    // =========================================================
+  // =========================================================
+  // TAX RATES
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS tax_rates (
       id TEXT PRIMARY KEY,
       client_id TEXT NOT NULL,
@@ -163,11 +163,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // EMPLOYEES
-    // =========================================================
+  // =========================================================
+  // EMPLOYEES
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS employees (
       id TEXT PRIMARY KEY,
 
@@ -197,11 +197,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // PRODUCTS
-    // =========================================================
+  // =========================================================
+  // PRODUCTS
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
       client_id TEXT NOT NULL,
@@ -253,13 +253,13 @@ function runMigrations(db) {
     );
   `);
 
-    try { db.exec("ALTER TABLE products ADD COLUMN shortcut_number INTEGER"); } catch (error) { if (!error.message.includes("duplicate column name")) throw error; }
+  try { db.exec("ALTER TABLE products ADD COLUMN shortcut_number INTEGER"); } catch (error) { if (!error.message.includes("duplicate column name")) throw error; }
 
-    // =========================================================
-    // PRODUCT -> BUSINESS LOCATION
-    // =========================================================
+  // =========================================================
+  // PRODUCT -> BUSINESS LOCATION
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS product_business_locations (
       product_id TEXT NOT NULL,
       business_location_id TEXT NOT NULL,
@@ -279,11 +279,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // CUSTOMERS
-    // =========================================================
+  // =========================================================
+  // CUSTOMERS
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS customers (
       id TEXT PRIMARY KEY,
 
@@ -309,11 +309,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // RESTAURANT TABLES
-    // =========================================================
+  // =========================================================
+  // RESTAURANT TABLES
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS restaurant_tables (
       id TEXT PRIMARY KEY,
 
@@ -334,11 +334,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // KOT PRINTER SETTINGS
-    // =========================================================
+  // =========================================================
+  // KOT PRINTER SETTINGS
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS kot_printer_settings (
       id TEXT PRIMARY KEY,
 
@@ -366,11 +366,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // KOT PRINTER STATIONS
-    // =========================================================
+  // =========================================================
+  // KOT PRINTER STATIONS
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS kot_printer_stations (
       id TEXT PRIMARY KEY,
 
@@ -393,11 +393,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // POS SALES
-    // =========================================================
+  // =========================================================
+  // POS SALES
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS pos_sales (
       id TEXT PRIMARY KEY,
 
@@ -431,17 +431,17 @@ function runMigrations(db) {
     );
   `);
 
-    // Existing installations may already have pos_sales without sale_number.
-    const posSaleColumns = db.prepare("PRAGMA table_info(pos_sales)").all();
-    if (!posSaleColumns.some((column) => column.name === "sale_number")) {
-      db.exec("ALTER TABLE pos_sales ADD COLUMN sale_number INTEGER");
-    }
+  // Existing installations may already have pos_sales without sale_number.
+  const posSaleColumns = db.prepare("PRAGMA table_info(pos_sales)").all();
+  if (!posSaleColumns.some((column) => column.name === "sale_number")) {
+    db.exec("ALTER TABLE pos_sales ADD COLUMN sale_number INTEGER");
+  }
 
-    // =========================================================
-    // POS SALE ITEMS
-    // =========================================================
+  // =========================================================
+  // POS SALE ITEMS
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS pos_sale_items (
       id TEXT PRIMARY KEY,
 
@@ -467,11 +467,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // POS PAYMENTS
-    // =========================================================
+  // =========================================================
+  // POS PAYMENTS
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS pos_sale_payments (
       id TEXT PRIMARY KEY,
 
@@ -489,11 +489,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // SYNC QUEUE
-    // =========================================================
+  // =========================================================
+  // SYNC QUEUE
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS sync_queue (
       id TEXT PRIMARY KEY,
 
@@ -515,11 +515,11 @@ function runMigrations(db) {
     );
   `);
 
-    // =========================================================
-    // INDEXES
-    // =========================================================
+  // =========================================================
+  // INDEXES
+  // =========================================================
 
-    db.exec(`
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_business_locations_client
     ON business_locations(client_id);
 
@@ -553,8 +553,19 @@ function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_sync_queue_status
     ON sync_queue(status, created_at);
   `);
+
+  // Employee names are unique per client, case-insensitively.
+  // Keep this guarded so an older local DB with duplicates can still open and be cleaned up.
+  try {
+    db.exec(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_employees_client_name_unique
+        ON employees(client_id, name COLLATE NOCASE);
+      `);
+  } catch (error) {
+    console.warn("Could not create employee-name unique index. Resolve duplicate employee names for this client.", error.message);
+  }
 }
 
 module.exports = {
-    runMigrations,
+  runMigrations,
 };
