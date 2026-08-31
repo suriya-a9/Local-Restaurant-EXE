@@ -12,6 +12,8 @@ import {
     Armchair,
     GitMerge,
     Package,
+    PanelLeftClose,
+    PanelLeftOpen,
 } from "lucide-react";
 import logo from "../assets/SaraS-Web-Solution.png"
 
@@ -26,7 +28,7 @@ const quickActions = [
     { label: "Takeaway", icon: Package },
 ];
 
-const Header = () => {
+const Header = ({ isSidebarExpanded, onToggleSidebarExpand }) => {
     const navigate = useNavigate();
     const { logout, role, portal, subscription } = useAuth();
     const [accountOpen, setAccountOpen] = useState(false);
@@ -96,7 +98,21 @@ const Header = () => {
 
     return (
         <header className="w-full h-16 bg-white flex items-center justify-between px-4 sm:px-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)] z-80">
-            <img src={logo} alt="Logo" className="h-10 w-auto" />
+            <div className="flex items-center gap-3">
+                <img src={logo} alt="Logo" className="h-10 w-auto" />
+                {onToggleSidebarExpand && (
+                    <button
+                        type="button"
+                        onClick={onToggleSidebarExpand}
+                        aria-label={isSidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+                        aria-pressed={isSidebarExpanded}
+                        title={isSidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+                        className="hidden md:flex items-center justify-center w-9 h-9 rounded-lg border border-[#e0e6ed] bg-white text-[#4a5568] cursor-pointer transition-colors duration-200 hover:bg-[#f0f2f5] hover:text-[#2d1b4e]"
+                    >
+                        {isSidebarExpanded ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+                    </button>
+                )}
+            </div>
 
             <div className="flex min-w-0 items-center gap-2">
                 {portal === "client" && (
@@ -117,7 +133,7 @@ const Header = () => {
                                 className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#40295C]/15 bg-[#40295C]/5 px-2.5 py-2 text-[11px] font-semibold text-[#40295C] transition-colors hover:bg-[#40295C] hover:text-white"
                             >
                                 <Icon size={14} />
-                                <span>{label}</span>
+                                {/* <span>{label}</span> */}
                             </button>
                         ))}
                     </div>
@@ -167,12 +183,6 @@ const Header = () => {
                             ${accountOpen ? 'flex flex-col' : 'hidden'}
                         `}
                     >
-                        {/* <button
-                            className="bg-transparent border-none px-4 py-2.5 text-left cursor-pointer text-[#333] hover:bg-[#f5f7fa]"
-                            onClick={() => { navigate('/profile'); setAccountOpen(false); }}
-                        >
-                            Profile
-                        </button> */}
                         <button
                             className="bg-transparent border-none px-4 py-2.5 text-left cursor-pointer text-[#333] hover:bg-[#f5f7fa]"
                             onClick={handleLogout}

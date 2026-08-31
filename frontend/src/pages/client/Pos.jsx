@@ -681,13 +681,13 @@ const POS = () => {
             : (SALE_TYPES.find((s) => s.key === saleType)?.label || saleType).toUpperCase();
 
     return (
-        <div className="flex flex-col h-screen bg-[#f1f3f7] text-slate-700 text-[11px] font-sans select-none p-2 gap-2 overflow-hidden">
+        <div className="flex flex-col h-screen bg-[#f1f3f7] text-slate-700 text-[11px] font-sans select-none p-2 gap-2 overflow-y-auto lg:overflow-hidden">
 
-            <header className="bg-white rounded-lg px-3 py-1.5 flex items-center justify-between border border-slate-200 shadow-2xl">
-                <div className="flex items-center gap-3">
+            <header className="bg-white rounded-lg px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 border border-slate-200 shadow-2xl">
+                <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center gap-1.5 text-slate-600 font-medium bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
-                        <span className="text-slate-400">Location</span>
-                        <MapPin className="w-3.5 h-3.5 text-indigo-600 ml-1" />
+                        <span className="text-slate-400 hidden sm:inline">Location</span>
+                        <MapPin className="w-3.5 h-3.5 text-indigo-600 sm:ml-1" />
                         {authBusinessLocationId ? (
                             <span className="font-semibold text-slate-800">{currentLocationName}</span>
                         ) : (
@@ -695,7 +695,7 @@ const POS = () => {
                                 value={selectedLocationId || ""}
                                 onChange={(e) => setSelectedLocationId(e.target.value || null)}
                                 disabled={loadingLocations}
-                                className="bg-transparent font-semibold text-slate-800 outline-none"
+                                className="bg-transparent font-semibold text-slate-800 outline-none max-w-[36vw] sm:max-w-none"
                             >
                                 <option value="" disabled>
                                     {loadingLocations ? "Loading..." : "Select location"}
@@ -709,26 +709,26 @@ const POS = () => {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-indigo-600 font-medium bg-indigo-50/50 px-2.5 py-1 rounded-md border border-indigo-100">
+                    <div className="hidden sm:flex items-center gap-1.5 text-indigo-600 font-medium bg-indigo-50/50 px-2.5 py-1 rounded-md border border-indigo-100">
                         <Calendar className="w-3.5 h-3.5" />
                         <span className="font-semibold">{formatHeaderDate(now)}</span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                     {/* <button className="p-1.5 text-indigo-600 hover:bg-slate-100 rounded-md border border-slate-200 bg-white"><FastForward className="w-4 h-4" /></button>
                     <button className="p-1.5 text-indigo-600 hover:bg-slate-100 rounded-md border border-slate-200 bg-white"><Columns className="w-4 h-4" /></button> */}
                     <button
                         type="button"
                         onClick={openCustomerForm}
-                        className="p-1.5 text-indigo-600 hover:bg-slate-100 rounded-md border border-slate-200 bg-white"
+                        className="p-1.5 text-indigo-600 hover:bg-slate-100 rounded-md border border-slate-200 bg-white shrink-0"
                         aria-label="Add customer"
                     ><UserPlus className="w-4 h-4" /></button>
-                    <button className="p-1.5 text-emerald-600 hover:bg-slate-100 rounded-md border border-slate-200 bg-white"><Printer className="w-4 h-4" /></button>
+                    <button className="p-1.5 text-emerald-600 hover:bg-slate-100 rounded-md border border-slate-200 bg-white shrink-0"><Printer className="w-4 h-4" /></button>
                     <button
                         type="button"
                         onClick={() => setShowCalculator(true)}
-                        className="p-1.5 text-emerald-600 hover:bg-slate-100 rounded-md border border-slate-200 bg-white"
+                        className="p-1.5 text-emerald-600 hover:bg-slate-100 rounded-md border border-slate-200 bg-white shrink-0"
                         aria-label="Open calculator"
                     ><Calculator className="w-4 h-4" /></button>
                     <button
@@ -736,22 +736,22 @@ const POS = () => {
                             loadProducts();
                             loadTables();
                         }}
-                        className="p-1.5 text-rose-500 hover:bg-slate-100 rounded-md border border-slate-200 bg-white"
+                        className="p-1.5 text-rose-500 hover:bg-slate-100 rounded-md border border-slate-200 bg-white shrink-0"
                     >
                         <RotateCcw className="w-4 h-4" />
                     </button>
-                    <button className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md border border-slate-200 bg-white"><MoreVertical className="w-4 h-4" /></button>
-                    <button className="ml-2 bg-white border border-indigo-600 text-indigo-600 px-3 py-1.5 rounded-md font-medium flex items-center gap-1.5 hover:bg-indigo-50">
-                        <Plus className="w-3.5 h-3.5" /> Add Expense
+                    <button className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md border border-slate-200 bg-white shrink-0"><MoreVertical className="w-4 h-4" /></button>
+                    <button className="ml-2 bg-white border border-indigo-600 text-indigo-600 px-3 py-1.5 rounded-md font-medium flex items-center gap-1.5 hover:bg-indigo-50 shrink-0 whitespace-nowrap">
+                        <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Add Expense</span>
                     </button>
                 </div>
             </header>
 
-            <div className="flex flex-1 gap-2 overflow-hidden">
+            <div className="flex flex-col lg:flex-row flex-1 gap-2 overflow-visible lg:overflow-hidden">
 
-                <div className="flex-[2.6] flex flex-col gap-2 overflow-hidden">
+                <div className="w-full lg:flex-[2.6] flex flex-col gap-2 overflow-visible lg:overflow-hidden">
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <div className="relative flex items-center bg-white rounded-lg border border-slate-200 p-1 flex-1">
                             <div className="flex items-center gap-2 px-2 text-slate-600 border-r border-slate-200 flex-1">
                                 <User className="w-4 h-4 text-slate-400" />
@@ -796,7 +796,7 @@ const POS = () => {
                             )}
                         </div>
 
-                        <div className="flex items-center bg-white rounded-lg border border-slate-200 p-1 px-3 gap-2">
+                        <div className="flex items-center justify-between sm:justify-start bg-white rounded-lg border border-slate-200 p-1 px-3 gap-2">
                             <UserCheck className="w-4 h-4 text-slate-400" />
                             <input
                                 type="number"
@@ -807,7 +807,7 @@ const POS = () => {
                             />
                         </div>
 
-                        <div className="relative flex items-center bg-white rounded-lg border border-slate-200 px-3 py-1.5 flex-[1.8] justify-between">
+                        <div className="relative flex items-center bg-white rounded-lg border border-slate-200 px-3 py-1.5 flex-1 sm:flex-[1.8] justify-between">
                             <input
                                 ref={searchInputRef}
                                 type="text"
@@ -861,7 +861,7 @@ const POS = () => {
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
                         {SALE_TYPES.map((type, idx) => {
                             const Icon = type.icon;
                             const isSelected = saleType === type.key;
@@ -869,7 +869,7 @@ const POS = () => {
                                 <button
                                     key={type.key}
                                     onClick={() => setSaleType(type.key)}
-                                    className={`flex-1 py-2 px-2 rounded-lg border font-semibold flex items-center justify-center gap-1.5 transition-all ${isSelected
+                                    className={`flex-1 min-w-[92px] sm:min-w-0 py-2 px-2 rounded-lg border font-semibold flex items-center justify-center gap-1.5 transition-all whitespace-nowrap ${isSelected
                                         ? "bg-indigo-50 border-indigo-600 text-indigo-700 shadow-sm"
                                         : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
                                         }`}
@@ -932,7 +932,7 @@ const POS = () => {
                             No products found.
                         </div>
                     ) : (
-                        <div className="flex-1 bg-white rounded-lg border border-slate-200 p-2.5 overflow-y-auto grid grid-cols-4 gap-2.5 content-start">
+                        <div className="flex-1 bg-white rounded-lg border border-slate-200 p-2.5 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 content-start">
                             {visibleProducts.map((product) => (
                                 <div
                                     key={product.id}
@@ -983,7 +983,7 @@ const POS = () => {
                     </div>
                 </div>
 
-                <div className="flex-1 bg-white rounded-lg border border-slate-200 p-2.5 flex flex-col justify-between overflow-hidden">
+                <div className="w-full lg:flex-1 bg-white rounded-lg border border-slate-200 p-2.5 flex flex-col justify-between max-h-80 lg:max-h-none overflow-hidden">
                     <div className="flex items-center justify-between mb-1">
                         <div>
                             <span className="font-bold text-indigo-950 uppercase tracking-wider text-[10px]">RUNNING TABLES</span>
@@ -1045,7 +1045,7 @@ const POS = () => {
 
                 </div>
 
-                <div className="flex-[1.2] bg-white rounded-lg border border-slate-200 p-2.5 flex flex-col justify-between overflow-hidden">
+                <div className="w-full lg:flex-[1.2] bg-white rounded-lg border border-slate-200 p-2.5 flex flex-col justify-between overflow-visible lg:overflow-hidden">
                     <div className="flex flex-col overflow-hidden">
                         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                             <span className="font-bold text-slate-800 text-xs">Current Order</span>
@@ -1197,9 +1197,9 @@ const POS = () => {
 
             </div>
 
-            <footer className="flex items-center justify-between gap-2 pt-0.5">
+            <footer className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 pt-0.5">
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 order-3 md:order-1">
                     {/* <button className="bg-white border border-slate-200 hover:bg-slate-50 p-1.5 rounded-lg flex flex-col items-center justify-center text-rose-500 w-14 h-11">
                         <Pause className="w-3.5 h-3.5" />
                         <span className="text-[8px] font-semibold mt-0.5">Suspend</span>
@@ -1214,7 +1214,7 @@ const POS = () => {
                     </button>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-1 justify-center max-w-xl">
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 flex-1 justify-center sm:max-w-xl order-1 md:order-2 mx-auto w-full md:w-auto">
                     {PAYMENT_BUTTONS.map((btn) => {
                         const isActive =
                             btn.method && payments.length === 1 && payments[0].payment_method === btn.method;
@@ -1222,8 +1222,8 @@ const POS = () => {
                             <button
                                 key={btn.key}
                                 onClick={() => (btn.method ? setSinglePayment(btn.method) : enableMultiplePay())}
-                                className={`flex-1 py-2.5 font-bold rounded-lg text-center shadow-sm text-[11px] transition-colors ${btn.cls} ${isActive || (!btn.method && payments.length > 1) ? "ring-2 ring-offset-1 ring-indigo-300" : ""
-                                    }`}
+                                className={`sm:flex-1 py-2.5 font-bold rounded-lg text-center shadow-sm text-[11px] transition-colors ${btn.cls} ${isActive || (!btn.method && payments.length > 1) ? "ring-2 ring-offset-1 ring-indigo-300" : ""
+                                    } ${btn.key === "multiple" ? "col-span-2 sm:col-span-1" : ""}`}
                             >
                                 {btn.label}
                             </button>
@@ -1231,17 +1231,18 @@ const POS = () => {
                     })}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 order-2 md:order-3 justify-between md:justify-end">
                     <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg px-3 py-0.5 flex flex-col items-end">
                         <span className="text-[8px] text-emerald-700 font-bold uppercase tracking-tight">Total Payable</span>
                         <span className="text-xs font-black text-emerald-600">{currency(totalPayable)}</span>
                     </div>
                     <button
                         onClick={openHistory}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2.5 rounded-lg font-bold flex items-center gap-1.5 shadow-sm text-[11px]"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2.5 rounded-lg font-bold flex items-center gap-1.5 shadow-sm text-[11px] whitespace-nowrap"
                     >
                         <Clock className="w-3.5 h-3.5" />
-                        <span>Recent Transactions</span>
+                        <span className="hidden sm:inline">Recent Transactions</span>
+                        <span className="sm:hidden">History</span>
                     </button>
                 </div>
 
@@ -1249,7 +1250,7 @@ const POS = () => {
 
             {showCustomerForm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-                    <form onSubmit={saveCustomer} className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl">
+                    <form onSubmit={saveCustomer} className="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-sm font-bold text-slate-900">Add Customer</h2>
                             <button type="button" onClick={() => setShowCustomerForm(false)} className="text-slate-400 hover:text-slate-700">
@@ -1357,8 +1358,8 @@ const POS = () => {
                             </button>
                         </div>
 
-                        <div className="flex flex-1 overflow-hidden">
-                            <div className="w-1/2 overflow-y-auto border-r border-slate-100">
+                        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
+                            <div className="w-full sm:w-1/2 max-h-56 sm:max-h-none overflow-y-auto border-b sm:border-b-0 sm:border-r border-slate-100">
                                 {historyLoading ? (
                                     <p className="p-4 font-medium text-slate-400">Loading sales...</p>
                                 ) : historyError ? (
@@ -1387,7 +1388,7 @@ const POS = () => {
                                 )}
                             </div>
 
-                            <div className="w-1/2 overflow-y-auto p-4">
+                            <div className="w-full sm:w-1/2 overflow-y-auto p-4">
                                 {selectedSaleLoading ? (
                                     <p className="font-medium text-slate-400">Loading...</p>
                                 ) : !selectedSale ? (

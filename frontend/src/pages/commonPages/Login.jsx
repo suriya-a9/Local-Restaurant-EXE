@@ -265,7 +265,7 @@ export default function Login({ portal = "client", endpoint = "/clientAuth/login
                 <img
                     src={loginBanner}
                     alt=""
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover object-top"
                 />
             </div>
 

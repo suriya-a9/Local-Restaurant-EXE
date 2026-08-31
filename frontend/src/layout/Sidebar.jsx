@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useRef } from 'react';
 import { useAuth } from '../context/authContext';
 import {
     LayoutDashboard,
@@ -146,11 +147,14 @@ const ADMIN_NAVIGATION = [
     // }
 ];
 
-const Sidebar = ({ isOpen, isMobile, closeSidebar }) => {
+const Sidebar = ({ isOpen, isMobile, closeSidebar, isExpanded = false }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
     const { role, portal } = useAuth();
+    const [hoveredItem, setHoveredItem] = useState(null);
+    const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
+    const hideTimeout = useRef(null);
 
     const navigationItems =
         portal === "admin"
@@ -168,6 +172,26 @@ const Sidebar = ({ isOpen, isMobile, closeSidebar }) => {
 
     const isActive = (path) => location.pathname === path;
 
+    const handleMouseEnter = (e, itemId) => {
+        if (isExpanded) return;
+        if (hideTimeout.current) {
+            clearTimeout(hideTimeout.current);
+            hideTimeout.current = null;
+        }
+        const rect = e.currentTarget.getBoundingClientRect();
+        setTooltipPos({
+            top: rect.top + rect.height / 2,
+            left: rect.right + 10,
+        });
+        setHoveredItem(itemId);
+    };
+
+    const handleMouseLeave = () => {
+        hideTimeout.current = setTimeout(() => setHoveredItem(null), 50);
+    };
+
+    const hoveredLabel = navigationItems.find((item) => item.id === hoveredItem)?.label;
+
     return (
         <>
             {isOpen && (
@@ -179,10 +203,11 @@ const Sidebar = ({ isOpen, isMobile, closeSidebar }) => {
 
             <aside
                 className={`
-                    fixed top-0 left-0 h-screen w-62.5 bg-white flex flex-col p-0 items-stretch
-                    z-90 shadow-[2px_0_8px_rgba(0,0,0,0.15)] transition-transform duration-300
-                    md:static md:h-auto md:w-19 md:items-center md:py-4
+                    fixed top-0 left-0 h-screen w-62.5 bg-white flex flex-col p-0 items-stretch min-h-0
+                    z-90 shadow-[2px_0_8px_rgba(0,0,0,0.15)] transition-[width,transform] duration-300
+                    md:static md:h-auto md:min-h-0 md:py-4
                     md:shadow-[1px_0_3px_rgba(0,0,0,0.06)] md:translate-x-0
+                    ${isExpanded ? 'md:w-56 md:items-stretch' : 'md:w-19 md:items-center'}
                     ${isMobile && isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
                 `}
             >
@@ -196,8 +221,11 @@ const Sidebar = ({ isOpen, isMobile, closeSidebar }) => {
                     </button>
                 </div>
 
-                <nav className="flex-1 overflow-visible py-2 w-full">
-                    <ul className="list-none m-0 p-0 w-full flex flex-col items-stretch gap-0 md:items-center md:gap-2.5">
+                <nav
+                    className="flex-1 min-h-0 overflow-y-auto overflow-x-visible py-2 w-full scrollbar-hide"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                    <ul className={`list-none m-0 p-0 w-full flex flex-col items-stretch gap-0 ${isExpanded ? 'md:items-stretch md:gap-1 md:px-3' : 'md:items-center md:gap-2.5'}`}>
                         {navigationItems.map((item) => {
                             const Icon = item.icon;
                             const active = isActive(item.path);
@@ -211,25 +239,27 @@ const Sidebar = ({ isOpen, isMobile, closeSidebar }) => {
                                                 bg-transparent border-none cursor-pointer rounded-none
                                                 gap-3 px-5 py-3.5 text-[0.95rem] font-medium
                                                 transition-colors duration-200
-                                                md:w-11 md:h-10 md:justify-center md:rounded-xl md:gap-0
-                                                md:px-0 md:py-0 md:text-base md:font-normal
+                                                ${isExpanded
+                                                    ? 'md:w-full md:h-10 md:justify-start md:rounded-lg md:gap-3 md:px-3 md:py-0 md:text-sm md:font-medium'
+                                                    : 'md:w-11 md:h-10 md:justify-center md:rounded-xl md:gap-0 md:px-0 md:py-0 md:text-base md:font-normal'}
                                                 ${active
                                                     ? 'text-white'
                                                     : 'text-[#4a5568] hover:bg-[#f0f2f5] hover:text-[#2d1b4e]'}
                                             `}
                                             style={active ? { backgroundColor: '#40295C' } : undefined}
                                             onClick={() => handleNavigation(item.path)}
+                                            onMouseEnter={(e) => handleMouseEnter(e, item.id)}
+                                            onMouseLeave={handleMouseLeave}
                                             aria-label={item.label}
                                         >
-                                            <span className="text-xl flex items-center justify-center">
+                                            <span className="text-xl flex items-center justify-center shrink-0">
                                                 <Icon size={20} />
                                             </span>
                                             {item.hasNotification && (
                                                 <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-[#e53e3e] border-[1.5px] border-white" />
                                             )}
-                                            <span className="block md:hidden">{item.label}</span>
-                                            <span className="hidden md:block absolute left-full top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#1f1a44] text-white px-[0.9rem] py-[0.35rem] rounded-full text-xs font-semibold tracking-wide opacity-0 pointer-events-none transition-all duration-200 ml-[0.6rem] z-150 group-hover:opacity-100 group-hover:translate-x-1">
-                                                {item.label.toUpperCase()}
+                                            <span className={`block whitespace-nowrap ${isExpanded ? '' : 'md:hidden'}`}>
+                                                {item.label}
                                             </span>
                                         </button>
                                     </div>
@@ -239,6 +269,19 @@ const Sidebar = ({ isOpen, isMobile, closeSidebar }) => {
                     </ul>
                 </nav>
             </aside>
+
+            {hoveredLabel && (
+                <span
+                    className="hidden md:block fixed bg-[#1f1a44] text-white px-[0.9rem] py-[0.35rem] rounded-full text-xs font-semibold tracking-wide whitespace-nowrap pointer-events-none z-150"
+                    style={{
+                        top: tooltipPos.top,
+                        left: tooltipPos.left,
+                        transform: 'translateY(-50%)',
+                    }}
+                >
+                    {hoveredLabel.toUpperCase()}
+                </span>
+            )}
         </>
     );
 };

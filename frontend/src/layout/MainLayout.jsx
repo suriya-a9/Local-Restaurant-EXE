@@ -6,6 +6,7 @@ import Header from "./Header";
 const MainLayout = ({ hideHeader = false, fullscreen = false }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isDesktopSidebarExpanded, setIsDesktopSidebarExpanded] = useState(false);
 
     useEffect(() => {
         const updateResize = () => {
@@ -39,9 +40,18 @@ const MainLayout = ({ hideHeader = false, fullscreen = false }) => {
         }
     };
 
+    const toggleDesktopSidebarExpand = () => {
+        setIsDesktopSidebarExpanded((prev) => !prev);
+    };
+
     return (
         <div className="flex flex-col h-screen bg-[#f5f7fa]">
-            {!hideHeader && <Header />}
+            {!hideHeader && (
+                <Header
+                    isSidebarExpanded={isDesktopSidebarExpanded}
+                    onToggleSidebarExpand={toggleDesktopSidebarExpand}
+                />
+            )}
 
             <div className="flex flex-1 overflow-hidden relative">
 
@@ -71,6 +81,7 @@ const MainLayout = ({ hideHeader = false, fullscreen = false }) => {
                     isOpen={isSidebarOpen}
                     isMobile={isMobile}
                     closeSidebar={closeSidebar}
+                    isExpanded={isDesktopSidebarExpanded}
                 />
 
                 <main className={`flex-1 overflow-y-auto bg-[#f5f7fa] w-full min-w-0

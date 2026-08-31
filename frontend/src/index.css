@@ -13,3 +13,7 @@ select,
 textarea {
 	font-family: inherit;
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}
