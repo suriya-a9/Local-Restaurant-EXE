@@ -136,6 +136,90 @@ async function syncNow() {
   }
 }
 
+async function pushNow() {
+  if (syncing) return { ...getStatus(), skipped: true, reason: "Sync already in progress" };
+
+  const apiBaseUrl = getConfig("sync_api_base_url");
+  const token = getConfig("sync_token");
+  const clientId = getConfig("sync_client_id");
+  const lastPulledAt = getConfig("sync_last_pulled_at");
+
+  if (!apiBaseUrl || !token || !clientId) {
+    return { ...getStatus(), skipped: true, reason: "Sync is not configured yet" };
+  }
+
+  // Do not allow a brand-new/empty local database to overwrite live data.
+  if (!lastPulledAt) {
+    return {
+      success: false,
+      ...getStatus(),
+      skipped: true,
+      reason: "Sync from live data once before uploading local data",
+    };
+  }
+
+  syncing = true;
+  setSyncResult("syncing");
+
+  try {
+    console.log("[SYNC] Manual update refresh: local -> live");
+    const push = await pushLocal(apiBaseUrl, token, clientId);
+    const syncedAt = push.synced_at || new Date().toISOString();
+    setSyncResult("synced", null, syncedAt);
+
+    return {
+      success: true,
+      direction: "push",
+      ...getStatus(),
+      pushed: push.counts || {},
+    };
+  } catch (error) {
+    const status = error?.status === 401 ? "auth_required" : "offline";
+    setSyncResult(status, error.message || "Server unavailable");
+    console.error("[SYNC] Manual push failed:", error);
+    return { success: false, ...getStatus(), error: error.message };
+  } finally {
+    syncing = false;
+  }
+}
+
+async function pullNow() {
+  if (syncing) return { ...getStatus(), skipped: true, reason: "Sync already in progress" };
+
+  const apiBaseUrl = getConfig("sync_api_base_url");
+  const token = getConfig("sync_token");
+  const clientId = getConfig("sync_client_id");
+
+  if (!apiBaseUrl || !token || !clientId) {
+    return { ...getStatus(), skipped: true, reason: "Sync is not configured yet" };
+  }
+
+  syncing = true;
+  setSyncResult("syncing");
+
+  try {
+    console.log("[SYNC] Manual sync refresh: live -> local");
+    const pull = await pullServer(apiBaseUrl, token, clientId);
+    const syncedAt = new Date().toISOString();
+    setSyncResult("synced", null, syncedAt);
+
+    return {
+      success: true,
+      direction: "pull",
+      ...getStatus(),
+      pulled: pull.serverCounts,
+      imported: pull.localCounts,
+    };
+  } catch (error) {
+    const status = error?.status === 401 ? "auth_required" : "offline";
+    setSyncResult(status, error.message || "Server unavailable");
+    console.error("[SYNC] Manual pull failed:", error);
+    return { success: false, ...getStatus(), error: error.message };
+  } finally {
+    syncing = false;
+  }
+}
+
 function startAutoSync() {
   if (timer) return;
 
@@ -158,6 +242,8 @@ function stopAutoSync() {
 module.exports = {
   configure,
   syncNow,
+  pushNow,
+  pullNow,
   getStatus,
   startAutoSync,
   stopAutoSync,

@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-// import { BrowserRouter } from 'react-router-dom'
-import { HashRouter } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
+// import { HashRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/authContext.jsx'
@@ -23,15 +23,15 @@ window.fetch = async (...args) => {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {/* <BrowserRouter>
+    <BrowserRouter>
       <AuthProvider>
         <App />
       </AuthProvider>
-    </BrowserRouter> */}
-    <HashRouter>
+    </BrowserRouter>
+    {/* <HashRouter>
       <AuthProvider>
         <App />
       </AuthProvider>
-    </HashRouter>
+    </HashRouter> */}
   </StrictMode>,
 )

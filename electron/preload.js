@@ -67,6 +67,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   sync: {
     configure: (data) => ipcRenderer.invoke("sync:configure", data),
     now: () => ipcRenderer.invoke("sync:now"),
+    pushNow: () => ipcRenderer.invoke("sync:pushNow"),
+    pullNow: () => ipcRenderer.invoke("sync:pullNow"),
     status: () => ipcRenderer.invoke("sync:status"),
   },
   dashboard: {

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import toast from "react-hot-toast";
 import {
     User,
     AlertTriangle,
@@ -14,6 +15,8 @@ import {
     Package,
     PanelLeftClose,
     PanelLeftOpen,
+    Upload,
+    RefreshCw,
 } from "lucide-react";
 import logo from "../assets/SaraS-Web-Solution.png"
 
@@ -32,6 +35,8 @@ const Header = ({ isSidebarExpanded, onToggleSidebarExpand }) => {
     const navigate = useNavigate();
     const { logout, role, portal, subscription } = useAuth();
     const [accountOpen, setAccountOpen] = useState(false);
+    const [manualSyncAction, setManualSyncAction] = useState(null);
+    const isElectron = Boolean(window.electronAPI?.sync);
     const accountRef = useRef(null);
     const quickActionsRef = useRef(null);
     const quickActionsDrag = useRef({ active: false, startX: 0, startScrollLeft: 0 });
@@ -72,6 +77,53 @@ const Header = ({ isSidebarExpanded, onToggleSidebarExpand }) => {
     const handleLogout = () => {
         logout();
         navigate('/');
+    };
+
+    const handleUpdateRefresh = async () => {
+        if (!isElectron || manualSyncAction) return;
+        if (!navigator.onLine) {
+            toast.error("Wi-Fi / internet connection is unavailable");
+            return;
+        }
+
+        setManualSyncAction("push");
+        try {
+            const result = await window.electronAPI.sync.pushNow();
+            if (result?.success) {
+                toast.success("Local data updated to live server");
+            } else {
+                toast.error(result?.reason || result?.last_error || result?.error || "Update refresh failed");
+            }
+        } catch (error) {
+            toast.error(error?.message || "Update refresh failed");
+        } finally {
+            setManualSyncAction(null);
+        }
+    };
+
+    const handleSyncRefresh = async () => {
+        if (!isElectron || manualSyncAction) return;
+        if (!navigator.onLine) {
+            toast.error("Wi-Fi / internet connection is unavailable");
+            return;
+        }
+
+        setManualSyncAction("pull");
+        try {
+            const result = await window.electronAPI.sync.pullNow();
+            if (result?.success) {
+                toast.success("Latest live data synced");
+                // Refresh the current Electron view so every page reads the
+                // newly imported SQLite data immediately.
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                toast.error(result?.reason || result?.last_error || result?.error || "Sync refresh failed");
+            }
+        } catch (error) {
+            toast.error(error?.message || "Sync refresh failed");
+        } finally {
+            setManualSyncAction(null);
+        }
     };
 
     const handleQuickActionsPointerDown = (event) => {
@@ -136,6 +188,39 @@ const Header = ({ isSidebarExpanded, onToggleSidebarExpand }) => {
                                 {/* <span>{label}</span> */}
                             </button>
                         ))}
+                    </div>
+                )}
+
+
+                {isElectron && portal === "client" && (
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={handleUpdateRefresh}
+                            disabled={Boolean(manualSyncAction)}
+                            title="Update Refresh — Local to Live"
+                            aria-label="Update Refresh — Local to Live"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#40295C]/20 bg-white text-[#40295C] transition hover:bg-[#40295C]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Upload
+                                size={16}
+                                className={manualSyncAction === "push" ? "animate-pulse" : ""}
+                            />
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={handleSyncRefresh}
+                            disabled={Boolean(manualSyncAction)}
+                            title="Sync Refresh — Live to Local"
+                            aria-label="Sync Refresh — Live to Local"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#40295C]/20 bg-white text-[#40295C] transition hover:bg-[#40295C]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <RefreshCw
+                                size={16}
+                                className={manualSyncAction === "pull" ? "animate-spin" : ""}
+                            />
+                        </button>
                     </div>
                 )}
 
