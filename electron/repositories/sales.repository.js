@@ -12,9 +12,11 @@ function shapeSale(row) {
   const db = getDatabase();
   const items = db.prepare(`
         SELECT si.*, p.name AS product_name, p.selling_price_tax_type,
-          p.default_selling_price_exc_tax
+          p.default_selling_price_exc_tax, p.category_id,
+          c.name AS category_name
     FROM pos_sale_items si
     JOIN products p ON p.id = si.product_id
+    LEFT JOIN categories c ON c.id = p.category_id
     WHERE si.sale_id = ? ORDER BY si.created_at ASC
   `).all(row.id);
   const payments = db.prepare('SELECT * FROM pos_sale_payments WHERE sale_id = ? ORDER BY created_at ASC').all(row.id);
@@ -23,7 +25,16 @@ function shapeSale(row) {
 
 function getSaleById(clientId, saleId, locationId = null) {
   const db = getDatabase();
-  let sql = `SELECT s.*, bl.name AS business_location_name
+  let sql = `SELECT s.*,
+                    bl.name AS business_location_name,
+                    bl.address AS business_location_address,
+                    bl.city AS business_location_city,
+                    bl.state AS business_location_state,
+                    bl.country AS business_location_country,
+                    bl.postal_code AS business_location_postal_code,
+                    bl.phone AS business_location_phone,
+                    bl.email AS business_location_email,
+                    bl.gst_number AS business_location_gst_number
              FROM pos_sales s JOIN business_locations bl ON bl.id = s.business_location_id
              WHERE s.client_id = ? AND s.id = ?`;
   const args = [clientId, saleId];

@@ -606,7 +606,37 @@ const POS = () => {
                 const sale = await window.electronAPI.sales.create(payload);
                 setLastSale(sale); clearOrder();
                 if (selectedTableId && window.electronAPI?.tables) await window.electronAPI.tables.updateStatus(selectedTableId, clientId, "available");
+
                 toast.success("Sales created successfully");
+
+                if (sale?.receipt_print?.success) {
+                    toast.success("Receipt sent to billing printer");
+                } else if (sale?.receipt_print?.skipped) {
+                    toast.error(sale.receipt_print.message || "Billing printer is not configured");
+                } else if (sale?.receipt_print) {
+                    toast.error(`Receipt printing failed: ${sale.receipt_print.message || "Printer unavailable"}`);
+                }
+
+                if (sale?.kot_print && !sale.kot_print.skipped) {
+                    if (sale.kot_print.success) {
+                        const fallbackCount = (sale.kot_print.results || []).filter((result) => result.used_default).length;
+                        toast.success(
+                            fallbackCount > 0
+                                ? `KOT printed successfully (${fallbackCount} used Default KOT printer)`
+                                : "KOT printed successfully"
+                        );
+                    } else {
+                        const failedCategories = (sale.kot_print.results || [])
+                            .filter((result) => !result.success)
+                            .map((result) => result.category_name)
+                            .filter(Boolean);
+                        toast.error(
+                            failedCategories.length
+                                ? `KOT printing failed for: ${failedCategories.join(", ")}`
+                                : sale.kot_print.message || "KOT printing failed"
+                        );
+                    }
+                }
                 return;
             }
             const res = await fetch(`${API_BASE_URL}/api/sales`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json", ...authHeaders }, body: JSON.stringify(payload) });
