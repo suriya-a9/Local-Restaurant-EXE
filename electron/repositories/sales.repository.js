@@ -39,7 +39,14 @@ function getSaleById(clientId, saleId, locationId = null) {
              WHERE s.client_id = ? AND s.id = ?`;
   const args = [clientId, saleId];
   if (locationId) { sql += ' AND s.business_location_id = ?'; args.push(locationId); }
-  return shapeSale(db.prepare(sql).get(...args));
+  const sale = shapeSale(db.prepare(sql).get(...args));
+  if (!sale) return sale;
+
+  // The client/restaurant name is stored during online sync configuration.
+  // Include it in the sale object so the billing receipt can print it above
+  // the branch/business-location name without requiring another API call.
+  const clientName = db.prepare("SELECT value FROM app_config WHERE key = 'sync_client_name'").get()?.value || null;
+  return { ...sale, client_name: clientName };
 }
 
 function listSales(clientId, locationId = null) {

@@ -46,57 +46,187 @@ function formatReceiptDate(value) {
 
 function buildReceiptBuffer(sale) {
     const locationName = sale.business_location_name || 'Restaurant';
-    const addressParts = [sale.business_location_address, sale.business_location_city, sale.business_location_state]
-        .filter(Boolean);
+    const addressParts = [
+        sale.business_location_address,
+        sale.business_location_city,
+        sale.business_location_state
+    ].filter(Boolean);
+
     const items = Array.isArray(sale.items) ? sale.items : [];
     const payments = Array.isArray(sale.payments) ? sale.payments : [];
     const lines = [];
 
+    const clientName = sale.client_name || '';
+
+    // Branch/location details
     lines.push(center(locationName));
-    if (addressParts.length) lines.push(center(addressParts.join(', ')));
-    if (sale.business_location_phone) lines.push(center(`Ph: ${sale.business_location_phone}`));
-    if (sale.business_location_gst_number) lines.push(center(`GSTIN: ${sale.business_location_gst_number}`));
+
+    if (addressParts.length) {
+        lines.push(center(addressParts.join(', ')));
+    }
+
+    if (sale.business_location_phone) {
+        lines.push(center(`Ph: ${sale.business_location_phone}`));
+    }
+
+    if (sale.business_location_gst_number) {
+        lines.push(center(`GSTIN: ${sale.business_location_gst_number}`));
+    }
+
     lines.push('-'.repeat(RECEIPT_WIDTH));
-    lines.push(columns('Invoice', sale.invoice_number || sale.sale_number || '-'));
-    lines.push(columns('Date', formatReceiptDate(sale.created_at)));
-    lines.push(columns('Type', String(sale.sale_type || 'dining').toUpperCase()));
-    lines.push(columns('Customer', sale.customer_name || 'Walk-In Customer'));
+
+    lines.push(columns(
+        'Invoice',
+        sale.invoice_number || sale.sale_number || '-'
+    ));
+
+    lines.push(columns(
+        'Date',
+        formatReceiptDate(sale.created_at)
+    ));
+
+    lines.push(columns(
+        'Type',
+        String(sale.sale_type || 'dining').toUpperCase()
+    ));
+
+    lines.push(columns(
+        'Customer',
+        sale.customer_name || 'Walk-In Customer'
+    ));
+
     lines.push('-'.repeat(RECEIPT_WIDTH));
     lines.push(columns('Item', 'Amount'));
     lines.push('-'.repeat(RECEIPT_WIDTH));
 
     for (const item of items) {
         lines.push(fit(item.product_name || 'Item'));
+
         const qty = Number(item.quantity) || 0;
         const unit = Number(item.unit_price_inc_tax) || 0;
         const discount = Number(item.discount_amount) || 0;
-        lines.push(columns(`  ${qty} x ${money(unit)}${discount ? ` - Disc ${money(discount)}` : ''}`, money(item.line_total)));
+
+        lines.push(
+            columns(
+                `  ${qty} x ${money(unit)}${discount ? ` - Disc ${money(discount)}` : ''
+                }`,
+                money(item.line_total)
+            )
+        );
     }
 
     lines.push('-'.repeat(RECEIPT_WIDTH));
-    lines.push(columns('Subtotal', money(sale.subtotal)));
-    if (Number(sale.discount_amount)) lines.push(columns('Discount', `-${money(sale.discount_amount)}`));
-    if (Number(sale.order_tax_amount)) lines.push(columns('Tax', money(sale.order_tax_amount)));
-    if (Number(sale.round_off_amount)) lines.push(columns('Round off', money(sale.round_off_amount)));
+
+    lines.push(columns(
+        'Subtotal',
+        money(sale.subtotal)
+    ));
+
+    if (Number(sale.discount_amount)) {
+        lines.push(
+            columns(
+                'Discount',
+                `-${money(sale.discount_amount)}`
+            )
+        );
+    }
+
+    if (Number(sale.order_tax_amount)) {
+        lines.push(
+            columns(
+                'Tax',
+                money(sale.order_tax_amount)
+            )
+        );
+    }
+
+    if (Number(sale.round_off_amount)) {
+        lines.push(
+            columns(
+                'Round off',
+                money(sale.round_off_amount)
+            )
+        );
+    }
+
     lines.push('='.repeat(RECEIPT_WIDTH));
-    lines.push(columns('TOTAL', money(sale.total_amount)));
+
+    lines.push(
+        columns(
+            'TOTAL',
+            money(sale.total_amount)
+        )
+    );
+
     lines.push('='.repeat(RECEIPT_WIDTH));
 
     if (payments.length) {
         lines.push('Payment');
+
         for (const payment of payments) {
-            lines.push(columns(`  ${String(payment.payment_method || '').toUpperCase()}`, money(payment.amount)));
+            lines.push(
+                columns(
+                    `  ${String(
+                        payment.payment_method || ''
+                    ).toUpperCase()}`,
+                    money(payment.amount)
+                )
+            );
         }
+
         lines.push('-'.repeat(RECEIPT_WIDTH));
     }
 
     lines.push(center('Thank you!'));
     lines.push('', '', '');
 
+    // ESC/POS commands
     const initialize = Buffer.from([0x1b, 0x40]);
-    const text = Buffer.from(`${lines.join('\n')}\n`, 'ascii');
+
+    // Bold ON / OFF
+    const boldOn = Buffer.from([0x1b, 0x45, 0x01]);
+    const boldOff = Buffer.from([0x1b, 0x45, 0x00]);
+
+    // 2x width + 2x height
+    const doubleSize = Buffer.from([0x1d, 0x21, 0x11]);
+
+    // Return to normal text size
+    const normalSize = Buffer.from([0x1d, 0x21, 0x00]);
+
+    /*
+     * Because double-size text is twice as wide,
+     * a 48-character printer effectively has about
+     * 24 characters for this line.
+     */
+    const clientText = clientName
+        ? Buffer.from(
+            `${center(clientName, Math.floor(RECEIPT_WIDTH / 2))}\n`,
+            'ascii'
+        )
+        : Buffer.alloc(0);
+
+    const receiptText = Buffer.from(
+        `${lines.join('\n')}\n`,
+        'ascii'
+    );
+
     const cut = Buffer.from([0x1d, 0x56, 0x00]);
-    return Buffer.concat([initialize, text, cut]);
+
+    return Buffer.concat([
+        initialize,
+
+        // CLIENT NAME
+        boldOn,
+        doubleSize,
+        clientText,
+        normalSize,
+        boldOff,
+
+        // REST OF RECEIPT
+        receiptText,
+
+        cut
+    ]);
 }
 
 function buildKotBuffer(sale, categoryName, items) {
@@ -249,16 +379,12 @@ async function printKotTickets(sale, printerConfig) {
     const defaultPort = Number(settings.default_kot_port) || DEFAULT_PORT;
     const results = [];
 
-    // Keep jobs sequential. This is important when billing/KOT/default KOT
-    // point to the same physical printer, so raw TCP jobs do not overlap.
     for (const group of grouped.values()) {
         const primaryIp = String(group.station.printer_ip || '').trim();
         const primaryPort = Number(group.station.printer_port) || DEFAULT_PORT;
         const payload = buildKotBuffer(sale, group.categoryName, group.items);
 
         try {
-            // Always try the assigned category printer, even when it is the
-            // exact same IP/port as the Default KOT printer.
             await sendRawToPrinter(primaryIp, primaryPort, payload);
             results.push({
                 success: true,
@@ -286,9 +412,6 @@ async function printKotTickets(sale, printerConfig) {
                 continue;
             }
 
-            // When both entries point to the same printer, retrying the same
-            // endpoint as a "fallback" would only duplicate a transient job.
-            // The primary attempt above is still performed normally.
             if (samePrinter(primaryIp, primaryPort, defaultIp, defaultPort)) {
                 results.push({
                     success: false,
