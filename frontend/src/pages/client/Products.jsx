@@ -162,50 +162,58 @@ const Products = () => {
     async function loadTaxRates() {
         setLoadingTaxRates(true);
         try {
-            if (isElectron) { const data=await window.electronAPI.taxRates.getAll(clientId); setTaxRates(Array.isArray(data)?data:[]); return; }
-            const res=await fetch(`${API_BASE_URL}/api/tax-rates${clientId?`?client_id=${clientId}`:""}`,{headers:{Accept:"application/json",...(token?{Authorization:`Bearer ${token}`}:{})}});
-            const json=await res.json(); if(!res.ok||!json.success)throw new Error(json.message||"Failed to load tax rates"); const data=json.data;
-            setTaxRates(Array.isArray(data?.data)?data.data:Array.isArray(data)?data:[]);
-        }catch(err){console.error("Load tax rates error:",err);setTaxRates([])}finally{setLoadingTaxRates(false)}
+            if (isElectron) { const data = await window.electronAPI.taxRates.getAll(clientId); setTaxRates(Array.isArray(data) ? data : []); return; }
+            const res = await fetch(`${API_BASE_URL}/api/tax-rates${clientId ? `?client_id=${clientId}` : ""}`, { headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+            const json = await res.json(); if (!res.ok || !json.success) throw new Error(json.message || "Failed to load tax rates"); const data = json.data;
+            setTaxRates(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []);
+        } catch (err) { console.error("Load tax rates error:", err); setTaxRates([]) } finally { setLoadingTaxRates(false) }
     }
 
     async function createTaxRate() {
         setSavingTaxRate(true); setTaxRateError(null);
         try {
             let created;
-            const payload={client_id:clientId,id:crypto.randomUUID(),name:newTaxRate.name.trim(),rate_percent:Number(newTaxRate.rate_percent),tax_type:newTaxRate.tax_type.trim(),is_active:true};
-            if(isElectron){created=await window.electronAPI.taxRates.create(payload)} else {
-                const res=await fetch(`${API_BASE_URL}/api/tax-rates`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify(payload)});
-                const json=await res.json();if(!res.ok||!json.success)throw new Error(json.message||"Failed to create tax rate");created=json.data?.data??json.data;
+            const payload = { client_id: clientId, id: crypto.randomUUID(), name: newTaxRate.name.trim(), rate_percent: Number(newTaxRate.rate_percent), tax_type: newTaxRate.tax_type.trim(), is_active: true };
+            if (isElectron) { created = await window.electronAPI.taxRates.create(payload) } else {
+                const res = await fetch(`${API_BASE_URL}/api/tax-rates`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(payload) });
+                const json = await res.json(); if (!res.ok || !json.success) throw new Error(json.message || "Failed to create tax rate"); created = json.data?.data ?? json.data;
             }
-            setTaxRates((prev)=>[...prev,created]);setForm((prev)=>({...prev,applicable_tax_id:created.id}));setNewTaxRate({name:"",rate_percent:"",tax_type:"gst"});setShowNewTaxRateForm(false);
-        }catch(err){console.error("Create tax rate error:",err);setTaxRateError(err.message)}finally{setSavingTaxRate(false)}
+            setTaxRates((prev) => [...prev, created]); setForm((prev) => ({ ...prev, applicable_tax_id: created.id })); setNewTaxRate({ name: "", rate_percent: "", tax_type: "gst" }); setShowNewTaxRateForm(false);
+        } catch (err) { console.error("Create tax rate error:", err); setTaxRateError(err.message) } finally { setSavingTaxRate(false) }
     }
 
     async function loadFormOptions() {
         try {
-            if(isElectron){
-                const [u,c,s,b]=await Promise.all([window.electronAPI.units.getAll(clientId),window.electronAPI.categories.getAll(clientId),window.electronAPI.subCategories.getAll(clientId),window.electronAPI.businessLocations.getAll(clientId)]);
-                setUnits(Array.isArray(u)?u:[]);setCategories(Array.isArray(c)?c:[]);setSubCategories(Array.isArray(s)?s:[]);setBusinessLocations(Array.isArray(b)?b:[]);return;
+            if (isElectron) {
+                const [u, c, s, b] = await Promise.all([window.electronAPI.units.getAll(clientId), window.electronAPI.categories.getAll(clientId), window.electronAPI.subCategories.getAll(clientId), window.electronAPI.businessLocations.getAll(clientId)]);
+                setUnits(Array.isArray(u) ? u : []); setCategories(Array.isArray(c) ? c : []); setSubCategories(Array.isArray(s) ? s : []); setBusinessLocations(Array.isArray(b) ? b : []); return;
             }
-            const headers={Accept:"application/json",...(token?{Authorization:`Bearer ${token}`}:{})};
-            const [ur,cr,sr,br]=await Promise.all([fetch(`${API_BASE_URL}/api/client/units?client_id=${clientId}`,{headers}),fetch(`${API_BASE_URL}/api/client/categories?client_id=${clientId}`,{headers}),fetch(`${API_BASE_URL}/api/client/sub-categories?client_id=${clientId}`,{headers}),fetch(`${API_BASE_URL}/api/client/business-locations?client_id=${clientId}`,{headers})]);
-            const [uj,cj,sj,bj]=await Promise.all([ur.json(),cr.json(),sr.json(),br.json()]);
-            if(!ur.ok||!uj.success)throw new Error(uj.message||"Failed to load units");if(!cr.ok||!cj.success)throw new Error(cj.message||"Failed to load categories");if(!sr.ok||!sj.success)throw new Error(sj.message||"Failed to load sub categories");if(!br.ok||!bj.success)throw new Error(bj.message||"Failed to load business locations");
-            setUnits(Array.isArray(uj.data?.data)?uj.data.data:Array.isArray(uj.data)?uj.data:[]);setCategories(Array.isArray(cj.data?.data)?cj.data.data:Array.isArray(cj.data)?cj.data:[]);setSubCategories(Array.isArray(sj.data?.data)?sj.data.data:Array.isArray(sj.data)?sj.data:[]);setBusinessLocations(Array.isArray(bj.data?.data)?bj.data.data:Array.isArray(bj.data)?bj.data:[]);
-        }catch(err){console.error("Load product form options error:",err);setError(err.message)}
+            const headers = { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+            const [ur, cr, sr, br] = await Promise.all([fetch(`${API_BASE_URL}/api/client/units?client_id=${clientId}`, { headers }), fetch(`${API_BASE_URL}/api/client/categories?client_id=${clientId}`, { headers }), fetch(`${API_BASE_URL}/api/client/sub-categories?client_id=${clientId}`, { headers }), fetch(`${API_BASE_URL}/api/client/business-locations?client_id=${clientId}`, { headers })]);
+            const [uj, cj, sj, bj] = await Promise.all([ur.json(), cr.json(), sr.json(), br.json()]);
+            if (!ur.ok || !uj.success) throw new Error(uj.message || "Failed to load units"); if (!cr.ok || !cj.success) throw new Error(cj.message || "Failed to load categories"); if (!sr.ok || !sj.success) throw new Error(sj.message || "Failed to load sub categories"); if (!br.ok || !bj.success) throw new Error(bj.message || "Failed to load business locations");
+            setUnits(Array.isArray(uj.data?.data) ? uj.data.data : Array.isArray(uj.data) ? uj.data : []); setCategories(Array.isArray(cj.data?.data) ? cj.data.data : Array.isArray(cj.data) ? cj.data : []); setSubCategories(Array.isArray(sj.data?.data) ? sj.data.data : Array.isArray(sj.data) ? sj.data : []); setBusinessLocations(Array.isArray(bj.data?.data) ? bj.data.data : Array.isArray(bj.data) ? bj.data : []);
+        } catch (err) { console.error("Load product form options error:", err); setError(err.message) }
     }
 
     async function loadProducts() {
         setLoading(true); setError(null);
-        try{
+        try {
             let allProducts;
-            if(isElectron){allProducts=await window.electronAPI.products.getAll(clientId,isLocationRestrictedRole?currentBusinessLocationId:null)}else{
-                const res=await fetch(`${API_BASE_URL}/api/products?client_id=${clientId}`,{headers:{Accept:"application/json",...(token?{Authorization:`Bearer ${token}`}:{})}});const json=await res.json();if(!res.ok||!json.success)throw new Error(json.message||"Failed to load products");const data=json.data;allProducts=Array.isArray(data?.data)?data.data:Array.isArray(data)?data:[];
+            if (isElectron) { allProducts = await window.electronAPI.products.getAll(clientId, isLocationRestrictedRole ? currentBusinessLocationId : null) } else {
+                const res = await fetch(
+                    `${API_BASE_URL}/api/products?client_id=${clientId}&per_page=1000`,
+                    {
+                        headers: {
+                            Accept: "application/json",
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                        },
+                    }
+                ); const json = await res.json(); if (!res.ok || !json.success) throw new Error(json.message || "Failed to load products"); const data = json.data; allProducts = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
             }
-            const visible=isLocationRestrictedRole&&currentBusinessLocationId?allProducts.filter((product)=>Array.isArray(product.business_locations)&&product.business_locations.some((location)=>String(location.id)===currentBusinessLocationId)):allProducts;
+            const visible = isLocationRestrictedRole && currentBusinessLocationId ? allProducts.filter((product) => Array.isArray(product.business_locations) && product.business_locations.some((location) => String(location.id) === currentBusinessLocationId)) : allProducts;
             setProducts(visible);
-        }catch(err){console.error("Load products error:",err);setError(err.message);setProducts([])}finally{setLoading(false)}
+        } catch (err) { console.error("Load products error:", err); setError(err.message); setProducts([]) } finally { setLoading(false) }
     }
 
     function openCreateForm() {
@@ -294,24 +302,24 @@ const Products = () => {
 
     async function handleSubmit(e) {
         e.preventDefault(); setSaving(true); setError(null); setFormErrors({});
-        const isEditing=Boolean(editingProductId);
-        try{
-            if(isElectron){
-                const imageData=form.image instanceof File?await fileToDataUrl(form.image):undefined;
-                const payload={
-                    id:isEditing?editingProductId:crypto.randomUUID(),client_id:clientId,name:form.name.trim(),sku:form.sku.trim(),barcode:form.barcode.trim()||null,shortcut_number:form.shortcut_number===""?null:Number(form.shortcut_number),
-                    unit_id:form.unit_id||null,category_id:form.category_id||null,sub_category_id:form.sub_category_id||null,applicable_tax_id:form.applicable_tax_id||null,
-                    product_type:form.product_type,selling_price_tax_type:form.selling_price_tax_type,enable_stock:Boolean(form.enable_stock),alert_quantity:form.alert_quantity===""?null:Number(form.alert_quantity),
-                    default_purchase_price_exc_tax:Number(form.default_purchase_price_exc_tax||0),default_purchase_price_inc_tax:Number(form.default_purchase_price_inc_tax||0),margin_percent:Number(form.margin_percent||0),
-                    default_selling_price_exc_tax:Number(form.default_selling_price_exc_tax||0),default_selling_price_inc_tax:Number(form.default_selling_price_inc_tax||0),business_location_ids:form.business_location_ids.map(String),
+        const isEditing = Boolean(editingProductId);
+        try {
+            if (isElectron) {
+                const imageData = form.image instanceof File ? await fileToDataUrl(form.image) : undefined;
+                const payload = {
+                    id: isEditing ? editingProductId : crypto.randomUUID(), client_id: clientId, name: form.name.trim(), sku: form.sku.trim(), barcode: form.barcode.trim() || null, shortcut_number: form.shortcut_number === "" ? null : Number(form.shortcut_number),
+                    unit_id: form.unit_id || null, category_id: form.category_id || null, sub_category_id: form.sub_category_id || null, applicable_tax_id: form.applicable_tax_id || null,
+                    product_type: form.product_type, selling_price_tax_type: form.selling_price_tax_type, enable_stock: Boolean(form.enable_stock), alert_quantity: form.alert_quantity === "" ? null : Number(form.alert_quantity),
+                    default_purchase_price_exc_tax: Number(form.default_purchase_price_exc_tax || 0), default_purchase_price_inc_tax: Number(form.default_purchase_price_inc_tax || 0), margin_percent: Number(form.margin_percent || 0),
+                    default_selling_price_exc_tax: Number(form.default_selling_price_exc_tax || 0), default_selling_price_inc_tax: Number(form.default_selling_price_inc_tax || 0), business_location_ids: form.business_location_ids.map(String),
                 };
-                if(imageData!==undefined)payload.image=imageData;
-                if(isEditing)await window.electronAPI.products.update(payload);else await window.electronAPI.products.create(payload);
-                closeForm();setCurrentPage(1);await loadProducts();return;
+                if (imageData !== undefined) payload.image = imageData;
+                if (isEditing) await window.electronAPI.products.update(payload); else await window.electronAPI.products.create(payload);
+                closeForm(); setCurrentPage(1); await loadProducts(); return;
             }
-            const formData=new FormData();formData.append("client_id",clientId);formData.append("name",form.name.trim());formData.append("sku",form.sku.trim());formData.append("barcode",form.barcode.trim()||"");if(form.image instanceof File)formData.append("image",form.image);formData.append("unit_id",String(form.unit_id||""));formData.append("category_id",String(form.category_id||""));formData.append("sub_category_id",String(form.sub_category_id||""));formData.append("applicable_tax_id",form.applicable_tax_id===""?"":String(form.applicable_tax_id));formData.append("product_type",form.product_type);formData.append("selling_price_tax_type",form.selling_price_tax_type);formData.append("enable_stock",form.enable_stock?"1":"0");formData.append("alert_quantity",form.alert_quantity===""?"":String(Number(form.alert_quantity)));formData.append("default_purchase_price_exc_tax",String(Number(form.default_purchase_price_exc_tax)));formData.append("default_purchase_price_inc_tax",String(Number(form.default_purchase_price_inc_tax)));formData.append("margin_percent",String(Number(form.margin_percent)));formData.append("default_selling_price_exc_tax",String(Number(form.default_selling_price_exc_tax)));formData.append("default_selling_price_inc_tax",String(Number(form.default_selling_price_inc_tax)));formData.append("shortcut_number",form.shortcut_number===""?"":String(Number(form.shortcut_number)));form.business_location_ids.forEach((id)=>formData.append("business_location_ids[]",String(id)));if(isEditing)formData.append("_method","PUT");
-            const url=isEditing?`${API_BASE_URL}/api/products/${editingProductId}?client_id=${clientId}`:`${API_BASE_URL}/api/products?client_id=${clientId}`;const res=await fetch(url,{method:"POST",headers:{Accept:"application/json",...(token?{Authorization:`Bearer ${token}`}:{})},body:formData});const json=await res.json();if(!res.ok||!json.success){if(json.errors)setFormErrors(json.errors);throw new Error(json.message||`Failed to ${isEditing?"update":"create"} product`)}closeForm();setCurrentPage(1);await loadProducts();
-        }catch(err){console.error("Save product error:",err);setError(err.message)}finally{setSaving(false)}
+            const formData = new FormData(); formData.append("client_id", clientId); formData.append("name", form.name.trim()); formData.append("sku", form.sku.trim()); formData.append("barcode", form.barcode.trim() || ""); if (form.image instanceof File) formData.append("image", form.image); formData.append("unit_id", String(form.unit_id || "")); formData.append("category_id", String(form.category_id || "")); formData.append("sub_category_id", String(form.sub_category_id || "")); formData.append("applicable_tax_id", form.applicable_tax_id === "" ? "" : String(form.applicable_tax_id)); formData.append("product_type", form.product_type); formData.append("selling_price_tax_type", form.selling_price_tax_type); formData.append("enable_stock", form.enable_stock ? "1" : "0"); formData.append("alert_quantity", form.alert_quantity === "" ? "" : String(Number(form.alert_quantity))); formData.append("default_purchase_price_exc_tax", String(Number(form.default_purchase_price_exc_tax))); formData.append("default_purchase_price_inc_tax", String(Number(form.default_purchase_price_inc_tax))); formData.append("margin_percent", String(Number(form.margin_percent))); formData.append("default_selling_price_exc_tax", String(Number(form.default_selling_price_exc_tax))); formData.append("default_selling_price_inc_tax", String(Number(form.default_selling_price_inc_tax))); formData.append("shortcut_number", form.shortcut_number === "" ? "" : String(Number(form.shortcut_number))); form.business_location_ids.forEach((id) => formData.append("business_location_ids[]", String(id))); if (isEditing) formData.append("_method", "PUT");
+            const url = isEditing ? `${API_BASE_URL}/api/products/${editingProductId}?client_id=${clientId}` : `${API_BASE_URL}/api/products?client_id=${clientId}`; const res = await fetch(url, { method: "POST", headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: formData }); const json = await res.json(); if (!res.ok || !json.success) { if (json.errors) setFormErrors(json.errors); throw new Error(json.message || `Failed to ${isEditing ? "update" : "create"} product`) } closeForm(); setCurrentPage(1); await loadProducts();
+        } catch (err) { console.error("Save product error:", err); setError(err.message) } finally { setSaving(false) }
     }
 
     function handleSearchChange(e) {
