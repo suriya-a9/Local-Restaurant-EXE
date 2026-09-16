@@ -53,6 +53,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getAll: (clientId, locationId = null, search = "") => ipcRenderer.invoke("customers:getAll", { clientId, locationId, search }),
     create: (data) => ipcRenderer.invoke("customers:create", data),
   },
+  cashSessions: {
+    today: (clientId, locationId) => ipcRenderer.invoke("cashSessions:today", { clientId, locationId }),
+    open: (clientId, locationId, openingAmount) => ipcRenderer.invoke("cashSessions:open", { clientId, locationId, openingAmount }),
+    report: (clientId, locationId) => ipcRenderer.invoke("cashSessions:report", { clientId, locationId }),
+    close: (clientId, locationId, closingAmount) => ipcRenderer.invoke("cashSessions:close", { clientId, locationId, closingAmount }),
+  },
   sales: {
     create: (data) => ipcRenderer.invoke("sales:create", data),
     getAll: (clientId, locationId = null) => ipcRenderer.invoke("sales:getAll", { clientId, locationId }),

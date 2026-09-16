@@ -1,0 +1,6 @@
+const model=require('./cashSession.model');
+const location=(req)=>req.user.business_location_id||req.query.business_location_id||req.body.business_location_id;
+exports.today=async(req,res)=>{try{const l=location(req);if(!l)return res.status(400).json({success:false,message:'Business location is required'});const session=await model.getTodaySession(req.user.id,l);res.json({success:true,data:session});}catch(e){res.status(500).json({success:false,message:e.message});}};
+exports.open=async(req,res)=>{try{const l=location(req);if(!l)return res.status(400).json({success:false,message:'Business location is required'});const session=await model.openSession(req.user.id,l,req.body.opening_amount);res.json({success:true,data:session});}catch(e){res.status(400).json({success:false,message:e.message});}};
+exports.report=async(req,res)=>{try{const l=location(req);const session=await model.getTodaySession(req.user.id,l);if(!session)return res.status(404).json({success:false,message:'No session for today'});res.json({success:true,data:await model.getReport(req.user.id,l,session)});}catch(e){res.status(500).json({success:false,message:e.message});}};
+exports.close=async(req,res)=>{try{const l=location(req);res.json({success:true,data:await model.closeSession(req.user.id,l,req.body.closing_amount)});}catch(e){res.status(400).json({success:false,message:e.message});}};

@@ -45,6 +45,7 @@ function getSnapshot(clientId) {
     restaurant_tables: byClient("restaurant_tables"),
     kot_printer_settings: settings,
     kot_printer_stations: inRows("kot_printer_stations", "kot_printer_settings_id", settingsIds),
+    pos_cash_sessions: byClient("pos_cash_sessions"),
     pos_sales: sales,
     pos_sale_items: inRows("pos_sale_items", "sale_id", saleIds),
     pos_sale_payments: inRows("pos_sale_payments", "sale_id", saleIds),
@@ -169,6 +170,8 @@ function applyServerSnapshot(clientId, snapshot) {
     const settingsIds = rows("kot_printer_settings").map(r => r.id).filter(Boolean);
     deleteChildrenForParents(db, "kot_printer_stations", "kot_printer_settings_id", settingsIds);
     add("kot_printer_stations", upsertRows(db, "kot_printer_stations", rows("kot_printer_stations")));
+
+    add("pos_cash_sessions", upsertRows(db, "pos_cash_sessions", rows("pos_cash_sessions"), { clientId }));
 
     add("pos_sales", upsertRows(db, "pos_sales", rows("pos_sales"), { clientId }));
 

@@ -394,6 +394,20 @@ function runMigrations(db) {
   `);
 
   // =========================================================
+  // DAILY CASH SESSIONS
+  // =========================================================
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pos_cash_sessions (
+      id TEXT PRIMARY KEY, client_id TEXT NOT NULL, business_location_id TEXT NOT NULL, business_date TEXT NOT NULL,
+      opening_amount REAL NOT NULL DEFAULT 0, closing_amount REAL, expected_cash REAL, difference_amount REAL,
+      status TEXT NOT NULL DEFAULT 'open', opened_at TEXT DEFAULT CURRENT_TIMESTAMP, closed_at TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(client_id,business_location_id,business_date),
+      FOREIGN KEY (business_location_id) REFERENCES business_locations(id) ON DELETE CASCADE
+    );
+  `);
+
+  // =========================================================
   // POS SALES
   // =========================================================
 

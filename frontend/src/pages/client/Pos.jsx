@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/authContext";
 import { getPrimaryLocationId } from "../../utils/primaryLocation";
+import { printHtml } from "../../utils/reportExports";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_IMAGE_URL = import.meta.env.VITE_API_IMAGE_URL || "";
@@ -165,6 +166,13 @@ const POS = () => {
     const [cancellingId, setCancellingId] = useState(null);
 
     const [now, setNow] = useState(new Date());
+    const [cashSession, setCashSession] = useState(null);
+    const [cashSessionLoading, setCashSessionLoading] = useState(false);
+    const [openingAmount, setOpeningAmount] = useState("");
+    const [closingAmount, setClosingAmount] = useState("");
+    const [showCloseDay, setShowCloseDay] = useState(false);
+    const [closeReport, setCloseReport] = useState(null);
+
 
     useEffect(() => {
         if (clientId) {
@@ -195,6 +203,7 @@ const POS = () => {
 
     useEffect(() => {
         if (businessLocationId) {
+            loadCashSession();
             loadTables();
             loadCustomers();
         } else {
@@ -202,6 +211,26 @@ const POS = () => {
             setCustomers([]);
         }
     }, [businessLocationId]);
+
+    async function loadCashSession() {
+        if (!businessLocationId) return;
+        setCashSessionLoading(true);
+        try {
+            let session;
+            if (window.electronAPI?.cashSessions) session = await window.electronAPI.cashSessions.today(clientId, businessLocationId);
+            else { const r=await fetch(`${API_BASE_URL}/api/sales/cash-session/today?business_location_id=${encodeURIComponent(businessLocationId)}`,{headers:{Accept:"application/json",...authHeaders}}); const j=await r.json(); if(!r.ok||!j.success) throw new Error(j.message||"Failed to load day session"); session=j.data; }
+            setCashSession(session||null);
+        } catch(e){ console.error("Load cash session error",e); toast.error(e.message); } finally { setCashSessionLoading(false); }
+    }
+
+    async function openDay() {
+        const amount=Number(openingAmount); if(!Number.isFinite(amount)||amount<0){toast.error("Enter a valid opening amount");return;}
+        try { let session; if(window.electronAPI?.cashSessions) session=await window.electronAPI.cashSessions.open(clientId,businessLocationId,amount); else {const r=await fetch(`${API_BASE_URL}/api/sales/cash-session/open`,{method:"POST",headers:{"Content-Type":"application/json",...authHeaders},body:JSON.stringify({business_location_id:businessLocationId,opening_amount:amount})});const j=await r.json();if(!r.ok||!j.success)throw new Error(j.message);session=j.data;} setCashSession(session);toast.success("Day opened"); } catch(e){toast.error(e.message);} 
+    }
+
+    async function previewCloseDay(){try{let report;if(window.electronAPI?.cashSessions)report=await window.electronAPI.cashSessions.report(clientId,businessLocationId);else{const r=await fetch(`${API_BASE_URL}/api/sales/cash-session/report?business_location_id=${encodeURIComponent(businessLocationId)}`,{headers:{Accept:"application/json",...authHeaders}});const j=await r.json();if(!r.ok||!j.success)throw new Error(j.message);report=j.data;}setCloseReport(report);setClosingAmount(report.expected_cash?.toFixed?.(2)||String(report.expected_cash||0));setShowCloseDay(true);}catch(e){toast.error(e.message)}}
+    async function closeDay(){const amount=Number(closingAmount);if(!Number.isFinite(amount)||amount<0){toast.error("Enter a valid closing amount");return;}try{let report;if(window.electronAPI?.cashSessions)report=await window.electronAPI.cashSessions.close(clientId,businessLocationId,amount);else{const r=await fetch(`${API_BASE_URL}/api/sales/cash-session/close`,{method:"POST",headers:{"Content-Type":"application/json",...authHeaders},body:JSON.stringify({business_location_id:businessLocationId,closing_amount:amount})});const j=await r.json();if(!r.ok||!j.success)throw new Error(j.message);report=j.data;}setCloseReport(report);setCashSession(report.session);toast.success("Day closed");}catch(e){toast.error(e.message)}}
+    function printCloseReport(){if(!closeReport)return;const rows=(closeReport.products||[]).map(p=>`<tr><td>${p.product_name}</td><td>Rs.${Number(p.unit_price||0).toFixed(2)}</td><td>${p.quantity}</td><td class="right">Rs.${Number(p.total_amount||0).toFixed(2)}</td></tr>`).join("");const pays=(closeReport.payments||[]).map(p=>`<div>${p.payment_method.toUpperCase()}: Rs.${Number(p.amount||0).toFixed(2)}</div>`).join("");printHtml("Day Closing Report",`<h1>Day Closing Report - ${currentLocationName}</h1><p>${new Date().toLocaleString()}</p><div class="summary"><div>Opening: Rs.${Number(closeReport.opening_amount||0).toFixed(2)}</div><div>Total Sales: Rs.${Number(closeReport.summary?.total_sales||0).toFixed(2)}</div><div>Expected Cash: Rs.${Number(closeReport.expected_cash||0).toFixed(2)}</div><div>Closing Cash: Rs.${Number(closeReport.closing_amount ?? closingAmount ?? 0).toFixed(2)}</div><div>Difference: Rs.${Number(closeReport.difference||0).toFixed(2)}</div><div>Sales: ${closeReport.summary?.sale_count||0}</div></div>${pays}<table><thead><tr><th>Product</th><th>Price</th><th>Qty</th><th class="right">Amount</th></tr></thead><tbody>${rows}</tbody></table>`)}
 
     async function loadCategories() {
         try {
@@ -712,6 +741,20 @@ const POS = () => {
 
     return (
         <div className="flex flex-col h-screen bg-[#f1f3f7] text-slate-700 text-[11px] font-sans select-none p-2 gap-2 overflow-y-auto lg:overflow-hidden">
+            {businessLocationId && !cashSessionLoading && (!cashSession || cashSession.status === "closed") && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4">
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                        <h2 className="text-xl font-bold text-slate-900">{cashSession?.status === "closed" ? "Day Closed" : "Open Day"}</h2>
+                        <p className="mt-1 text-sm text-slate-500">{currentLocationName} · {new Date().toLocaleDateString()}</p>
+                        {cashSession?.status === "closed" ? <p className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">Today is already closed. POS sales are locked until the next business day.</p> : <>
+                            <label className="mt-5 block text-xs font-bold uppercase text-slate-500">Opening cash amount</label>
+                            <input autoFocus type="number" min="0" step="0.01" value={openingAmount} onChange={e=>setOpeningAmount(e.target.value)} className="mt-2 w-full rounded-xl border px-4 py-3 text-lg font-bold outline-none focus:border-indigo-500" placeholder="0.00"/>
+                            <button onClick={openDay} className="mt-4 w-full rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white hover:bg-indigo-700">Start Day</button>
+                        </>}
+                    </div>
+                </div>
+            )}
+
 
             <header className="bg-white rounded-lg px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 border border-slate-200 shadow-2xl">
                 <div className="flex flex-wrap items-center gap-2">
@@ -770,6 +813,7 @@ const POS = () => {
                     >
                         <RotateCcw className="w-4 h-4" />
                     </button>
+                    <button type="button" onClick={previewCloseDay} disabled={!cashSession || cashSession.status === "closed"} className="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-md border border-rose-200 bg-white shrink-0 disabled:opacity-40">Close Day</button>
                     <button className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md border border-slate-200 bg-white shrink-0"><MoreVertical className="w-4 h-4" /></button>
                     <button className="ml-2 bg-white border border-indigo-600 text-indigo-600 px-3 py-1.5 rounded-md font-medium flex items-center gap-1.5 hover:bg-indigo-50 shrink-0 whitespace-nowrap">
                         <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Add Expense</span>
@@ -1374,6 +1418,18 @@ const POS = () => {
                                 =
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {showCloseDay && closeReport && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/60 p-4">
+                    <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+                        <div className="flex items-center justify-between"><div><h2 className="text-lg font-bold">Day Closing</h2><p className="text-xs text-slate-500">{currentLocationName}</p></div><button onClick={()=>setShowCloseDay(false)}><X size={18}/></button></div>
+                        <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">{[["Opening",closeReport.opening_amount],["Total Sales",closeReport.summary?.total_sales],["Cash Sales",closeReport.cash_sales],["Expected Cash",closeReport.expected_cash]].map(([l,v])=><div key={l} className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] font-bold uppercase text-slate-400">{l}</p><p className="mt-1 text-sm font-bold">{currency(v)}</p></div>)}</div>
+                        <div className="mt-4 overflow-hidden rounded-xl border"><table className="w-full text-xs"><thead className="bg-slate-50"><tr><th className="p-2 text-left">Product</th><th className="p-2 text-right">Price</th><th className="p-2 text-right">Qty</th><th className="p-2 text-right">Amount</th></tr></thead><tbody>{(closeReport.products||[]).map(p=><tr key={`${p.product_id}-${p.unit_price}`} className="border-t"><td className="p-2 font-semibold">{p.product_name}</td><td className="p-2 text-right">{currency(p.unit_price)}</td><td className="p-2 text-right">{p.quantity}</td><td className="p-2 text-right font-bold">{currency(p.total_amount)}</td></tr>)}</tbody></table></div>
+                        <div className="mt-4 grid gap-3 md:grid-cols-2"><div><p className="text-xs font-bold">Payment totals</p>{(closeReport.payments||[]).map(p=><div key={p.payment_method} className="mt-1 flex justify-between text-xs capitalize"><span>{p.payment_method}</span><b>{currency(p.amount)}</b></div>)}</div><div><label className="text-xs font-bold">Closing cash amount</label><input type="number" min="0" step="0.01" disabled={cashSession?.status==='closed'} value={closingAmount} onChange={e=>setClosingAmount(e.target.value)} className="mt-2 w-full rounded-xl border px-3 py-2 text-sm font-bold"/><p className="mt-2 text-xs">Difference: <b>{currency((Number(closingAmount)||0)-(Number(closeReport.expected_cash)||0))}</b></p></div></div>
+                        <div className="mt-5 flex justify-end gap-2"><button onClick={printCloseReport} className="rounded-xl border px-4 py-2 text-xs font-bold"><Printer size={14} className="mr-1 inline"/>Print</button>{cashSession?.status!=='closed'&&<button onClick={closeDay} className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white">Confirm Close Day</button>}</div>
                     </div>
                 </div>
             )}

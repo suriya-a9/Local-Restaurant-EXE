@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, MapPin, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, MapPin, FileText, Sheet } from "lucide-react";
 import { useAuth } from "../../context/authContext";
 import Pagination from "../../components/Pagination";
 import { getPrimaryLocationId } from "../../utils/primaryLocation";
+import { downloadExcel, downloadPdf } from "../../utils/reportExports";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -24,6 +25,24 @@ function formatDate(dateStr) {
     });
 }
 
+function getPeriodBounds(type, from, to) {
+    const now = new Date();
+    const start = new Date(now);
+    const end = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    if (type === "all") return [null, null];
+    if (type === "yesterday") { start.setDate(start.getDate() - 1); end.setDate(end.getDate() - 1); }
+    if (type === "week") { const day = (start.getDay() + 6) % 7; start.setDate(start.getDate() - day); }
+    if (type === "month") start.setDate(1);
+    if (type === "year") start.setMonth(0, 1);
+    if (type === "custom") {
+        if (!from || !to) return [null, null];
+        return [new Date(`${from}T00:00:00`), new Date(`${to}T23:59:59.999`)];
+    }
+    return [start, end];
+}
+
 const Sales = () => {
     const { token, clientId, businessLocationId: authBusinessLocationId } = useAuth();
     const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
@@ -40,6 +59,9 @@ const Sales = () => {
     const [selectedSaleLoading, setSelectedSaleLoading] = useState(false);
     const [cancellingId, setCancellingId] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [period, setPeriod] = useState("today");
+    const [customFrom, setCustomFrom] = useState("");
+    const [customTo, setCustomTo] = useState("");
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -58,6 +80,8 @@ const Sales = () => {
             setCurrentPage(1);
         }
     }, [businessLocationId]);
+
+    useEffect(() => { setCurrentPage(1); }, [period, customFrom, customTo]);
 
     async function loadLocations() {
         setLoadingLocations(true);
@@ -139,11 +163,48 @@ const Sales = () => {
         finally { setCancellingId(null); }
     }
 
-    const totalPages = Math.ceil(salesList.length / itemsPerPage);
-    const paginatedSales = salesList.slice(
+    const filteredSales = useMemo(() => {
+        const [start, end] = getPeriodBounds(period, customFrom, customTo);
+        if (!start || !end) return salesList;
+        return salesList.filter((sale) => {
+            const date = new Date(sale.created_at);
+            return date >= start && date <= end;
+        });
+    }, [salesList, period, customFrom, customTo]);
+
+    const filteredTotal = filteredSales.reduce(
+        (sum, sale) => sum + (sale.status === "cancelled" ? 0 : Number(sale.total_amount) || 0),
+        0
+    );
+    const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
+    const paginatedSales = filteredSales.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
+
+    function exportRows() {
+        return filteredSales.flatMap((sale) => {
+            const items = Array.isArray(sale.items) && sale.items.length ? sale.items : [{ product_name: "-", quantity: "-", unit_price_inc_tax: "-", line_total: "-" }];
+            return items.map((item) => [
+                sale.invoice_number || sale.id, formatDate(sale.created_at), sale.customer_name || "Walk-In Customer",
+                item.product_name || "-", item.quantity ?? "-", item.unit_price_inc_tax ?? "-", item.line_total ?? "-",
+                (sale.payments || []).map((p) => p.payment_method).join(", ") || "-", sale.total_amount, sale.status || "completed"
+            ]);
+        });
+    }
+
+    function exportExcel() {
+        downloadExcel(`sales-${period}`, ["Invoice", "Date", "Customer", "Product", "Qty", "Unit Price", "Line Total", "Payment", "Sale Total", "Status"], exportRows(), {
+            title: "Sales Report", subtitle: `${filteredSales.length} sales • Total Rs.${filteredTotal.toFixed(2)}`, period
+        });
+    }
+
+    function exportPdf() {
+        downloadPdf(`sales-${period}`, "SALES REPORT", exportRows(), {
+            headers: ["Invoice", "Date", "Customer", "Product", "Qty", "Unit Price", "Line Total", "Payment", "Sale Total", "Status"],
+            summary: [`Period: ${period}`, `Sales: ${filteredSales.length}`, `Total: Rs.${filteredTotal.toFixed(2)}`]
+        });
+    }
 
     return (
         <div className="min-h-screen bg-zinc-50 p-4 md:p-6">
@@ -182,7 +243,26 @@ const Sales = () => {
             ) : (
                 <div className="max-w-6xl rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
                     <div className="border-b border-zinc-100 px-4 py-3">
-                        <h1 className="text-lg font-bold text-zinc-900">Sales</h1>
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                                <h1 className="text-lg font-bold text-zinc-900">Sales</h1>
+                                <p className="mt-0.5 text-[11px] font-medium text-zinc-400">{filteredSales.length} sales · {currency(filteredTotal)}</p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <button onClick={exportPdf} disabled={!filteredSales.length} className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-40"><FileText size={14}/>PDF</button>
+                                <button onClick={exportExcel} disabled={!filteredSales.length} className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-40"><Sheet size={14}/>Excel</button>
+                            </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                            {[["all","All"],["today","Today"],["yesterday","Yesterday"],["week","This Week"],["month","This Month"],["year","This Year"],["custom","Custom Date"]].map(([key,label]) => (
+                                <button key={key} onClick={() => setPeriod(key)} className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition ${period === key ? "bg-[#40295C] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}>{label}</button>
+                            ))}
+                            {period === "custom" && (<>
+                                <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-[11px] outline-none focus:border-[#40295C]"/>
+                                <span className="text-[11px] text-zinc-400">to</span>
+                                <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-[11px] outline-none focus:border-[#40295C]"/>
+                            </>)}
+                        </div>
                     </div>
 
                     <div className="flex min-h-[70vh] flex-col md:flex-row">
@@ -191,7 +271,7 @@ const Sales = () => {
                                 <p className="p-4 text-xs font-medium text-zinc-400">Loading sales...</p>
                             ) : salesError ? (
                                 <p className="p-4 text-xs font-medium text-rose-600">{salesError}</p>
-                            ) : salesList.length === 0 ? (
+                            ) : filteredSales.length === 0 ? (
                                 <p className="p-4 text-xs font-medium text-zinc-400">No sales found.</p>
                             ) : (
                                 <div className="divide-y divide-zinc-100">
@@ -203,7 +283,7 @@ const Sales = () => {
                                         >
                                             <div>
                                                 <p className="text-xs font-bold text-zinc-900">
-                                                    {`Sale #${salesList.length - ((currentPage - 1) * itemsPerPage + index)}`}
+                                                    {`Sale #${filteredSales.length - ((currentPage - 1) * itemsPerPage + index)}`}
                                                 </p>
                                                 <p className="text-[11px] text-zinc-500">
                                                     {sale.customer_name || "Walk-In Customer"} · {sale.sale_type} · {sale.business_location_name || "-"}
@@ -337,7 +417,7 @@ const Sales = () => {
                         </div>
                     </div>
 
-                    {!loadingSales && salesList.length > 0 && totalPages > 1 && (
+                    {!loadingSales && filteredSales.length > 0 && totalPages > 1 && (
                         <Pagination
                             currentPage={currentPage}
                             totalPages={totalPages}

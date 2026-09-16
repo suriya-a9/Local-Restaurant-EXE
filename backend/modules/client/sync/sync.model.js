@@ -1,6 +1,7 @@
 const pool = require("../../../config/db");
 
 async function upsertSnapshot(clientId, snapshot) {
+  await pool.cashSessionMigration;
   const db = await pool.connect();
   const counts = {};
   const rows = (name) => Array.isArray(snapshot?.[name]) ? snapshot[name] : [];
@@ -152,6 +153,14 @@ async function upsertSnapshot(clientId, snapshot) {
       }
     }
 
+    for (const r of rows("pos_cash_sessions")) {
+      await db.query(`INSERT INTO pos_cash_sessions(id,client_id,business_location_id,business_date,opening_amount,closing_amount,expected_cash,difference_amount,status,opened_at,closed_at,created_at,updated_at)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        ON CONFLICT(id) DO UPDATE SET opening_amount=EXCLUDED.opening_amount,closing_amount=EXCLUDED.closing_amount,expected_cash=EXCLUDED.expected_cash,difference_amount=EXCLUDED.difference_amount,status=EXCLUDED.status,opened_at=EXCLUDED.opened_at,closed_at=EXCLUDED.closed_at,updated_at=EXCLUDED.updated_at
+        WHERE pos_cash_sessions.client_id=$2`, [r.id,clientId,r.business_location_id,r.business_date,r.opening_amount||0,r.closing_amount??null,r.expected_cash??null,r.difference_amount??null,r.status||"open",r.opened_at||new Date(),r.closed_at||null,r.created_at||new Date(),r.updated_at||new Date()]);
+      count("pos_cash_sessions");
+    }
+
     for (const r of rows("pos_sales")) {
       await db.query(`INSERT INTO pos_sales
         (id,client_id,business_location_id,invoice_number,sale_number,sale_type,customer_name,subtotal,discount_amount,
@@ -197,6 +206,7 @@ async function upsertSnapshot(clientId, snapshot) {
 
 
 async function getServerSnapshot(clientId) {
+  await pool.cashSessionMigration;
   const db = await pool.connect();
   try {
     const one = async (sql, params = [clientId]) => (await db.query(sql, params)).rows;
@@ -260,6 +270,9 @@ async function getServerSnapshot(clientId) {
        ORDER BY kps.created_at ASC`
     );
 
+    const pos_cash_sessions = await one(
+      `SELECT * FROM pos_cash_sessions WHERE client_id = $1 ORDER BY business_date ASC`
+    );
     const pos_sales = await one(
       `SELECT * FROM pos_sales WHERE client_id = $1 ORDER BY created_at ASC`
     );
@@ -292,6 +305,7 @@ async function getServerSnapshot(clientId) {
       restaurant_tables,
       kot_printer_settings,
       kot_printer_stations,
+      pos_cash_sessions,
       pos_sales,
       pos_sale_items,
       pos_sale_payments,

@@ -18,6 +18,15 @@ const createSale = async ({ clientId, locationId, saleType, customerName, discou
             [locationId, clientId]
         );
 
+        await pool.cashSessionMigration;
+        const cashSessionResult = await connection.query(
+            "SELECT id,status FROM pos_cash_sessions WHERE client_id=$1 AND business_location_id=$2 AND business_date=CURRENT_DATE LIMIT 1",
+            [clientId, locationId]
+        );
+        if (!cashSessionResult.rows[0] || cashSessionResult.rows[0].status !== "open") {
+            throw new Error("Open today's cash session before creating sales");
+        }
+
         if (locationResult.rowCount === 0) {
             throw new Error("Business location does not belong to this client");
         }

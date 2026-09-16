@@ -49,3 +49,20 @@ CREATE INDEX IF NOT EXISTS pos_sale_items_sale_idx
 
 CREATE INDEX IF NOT EXISTS pos_sale_payments_sale_idx
     ON pos_sale_payments (sale_id);
+CREATE TABLE IF NOT EXISTS pos_cash_sessions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_id uuid NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    business_location_id uuid NOT NULL REFERENCES business_locations(id) ON DELETE CASCADE,
+    business_date date NOT NULL,
+    opening_amount numeric(12,2) NOT NULL DEFAULT 0,
+    closing_amount numeric(12,2),
+    expected_cash numeric(12,2),
+    difference_amount numeric(12,2),
+    status varchar(10) NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed')),
+    opened_at timestamptz NOT NULL DEFAULT now(),
+    closed_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE(client_id,business_location_id,business_date)
+);
+CREATE INDEX IF NOT EXISTS pos_cash_sessions_client_location_date_idx ON pos_cash_sessions(client_id,business_location_id,business_date DESC);

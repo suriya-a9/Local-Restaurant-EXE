@@ -71,6 +71,11 @@ function createSale(data) {
     const location = db.prepare('SELECT id FROM business_locations WHERE id = ? AND client_id = ?').get(data.business_location_id, data.client_id);
     if (!location) throw new Error('Business location does not belong to this client');
 
+    const today = new Date();
+    const businessDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    const cashSession = db.prepare('SELECT status FROM pos_cash_sessions WHERE client_id=? AND business_location_id=? AND business_date=? LIMIT 1').get(data.client_id,data.business_location_id,businessDate);
+    if (!cashSession || cashSession.status !== 'open') throw new Error("Open today's cash session before creating sales");
+
     const available = db.prepare(`SELECT 1 FROM products p
       JOIN product_business_locations pbl ON pbl.product_id = p.id
       WHERE p.id = ? AND p.client_id = ? AND pbl.business_location_id = ?`);

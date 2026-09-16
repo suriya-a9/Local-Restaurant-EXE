@@ -17,6 +17,7 @@ const { registerProductsIpc } = require("./ipc/products.ipc");
 const { registerTablesIpc } = require("./ipc/tables.ipc");
 const { registerCustomersIpc } = require("./ipc/customers.ipc");
 const { registerSalesIpc } = require("./ipc/sales.ipc");
+const { registerCashSessionsIpc } = require("./ipc/cashSessions.ipc");
 const { registerKotSettingsIpc } = require("./ipc/kotSettings.ipc");
 const { registerAuthIpc } = require("./ipc/auth.ipc");
 const { registerSyncIpc } = require("./ipc/sync.ipc");
@@ -61,6 +62,7 @@ app.whenReady().then(() => {
     registerTablesIpc();
     registerCustomersIpc();
     registerSalesIpc();
+    registerCashSessionsIpc();
     registerKotSettingsIpc();
     registerAuthIpc();
     registerSyncIpc();
