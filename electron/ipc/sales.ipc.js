@@ -41,6 +41,29 @@ function registerSalesIpc() {
   ipcMain.handle('sales:getAll', (_, { clientId, locationId = null }) => repo.listSales(clientId, locationId));
   ipcMain.handle('sales:getById', (_, { clientId, id, locationId = null }) => repo.getSaleById(clientId, id, locationId));
   ipcMain.handle('sales:cancel', (_, { clientId, id, locationId = null }) => repo.cancelSale(clientId, id, locationId));
+  // Only reprint an existing, tenant-scoped sale. No sale or payment is created.
+  ipcMain.handle('sales:hasKot', (_, { clientId, id, locationId = null }) => {
+    const sale = repo.getSaleById(clientId, id, locationId);
+    if (!sale) throw new Error('Sale not found');
+    const config = kotSettingsRepo.getByLocation(clientId, sale.business_location_id);
+    const categories = new Set((config?.stations || []).filter(s => s.category_id && s.printer_ip).map(s => String(s.category_id)));
+    return sale.items.some(item => categories.has(String(item.category_id)));
+  });
+  ipcMain.handle('sales:reprint', async (_, { clientId, id, locationId = null, includeKot = false }) => {
+    const sale = repo.getSaleById(clientId, id, locationId);
+    if (!sale) throw new Error('Sale not found');
+    const config = kotSettingsRepo.getByLocation(clientId, sale.business_location_id);
+    // Print sequentially, as billing and KOT may use the same physical printer.
+    let receiptPrint;
+    try { receiptPrint = await printBillingReceipt(sale, config?.settings); }
+    catch (error) { receiptPrint = { success: false, message: error.message || 'Receipt printing failed' }; }
+    let kotPrint = null;
+    if (includeKot) {
+      try { kotPrint = await printKotTickets(sale, config); }
+      catch (error) { kotPrint = { success: false, message: error.message || 'KOT printing failed' }; }
+    }
+    return { receipt_print: receiptPrint, kot_print: kotPrint };
+  });
 }
 
 module.exports = { registerSalesIpc };

@@ -64,6 +64,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getAll: (clientId, locationId = null) => ipcRenderer.invoke("sales:getAll", { clientId, locationId }),
     getById: (clientId, id, locationId = null) => ipcRenderer.invoke("sales:getById", { clientId, id, locationId }),
     cancel: (clientId, id, locationId = null) => ipcRenderer.invoke("sales:cancel", { clientId, id, locationId }),
+    reprint: (clientId, id, locationId = null, includeKot = false) => ipcRenderer.invoke("sales:reprint", { clientId, id, locationId, includeKot }),
+    hasKot: (clientId, id, locationId = null) => ipcRenderer.invoke("sales:hasKot", { clientId, id, locationId }),
   },
   kotSettings: {
     getByLocation: (clientId, locationId) => ipcRenderer.invoke("kotSettings:getByLocation", { clientId, locationId }),

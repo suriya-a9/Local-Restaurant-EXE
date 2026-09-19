@@ -36,11 +36,43 @@ function money(value) {
 }
 
 function formatReceiptDate(value) {
-    const date = value ? new Date(value) : new Date();
-    if (Number.isNaN(date.getTime())) return normalizeText(value || '');
+    if (!value) {
+        return new Date().toLocaleString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        });
+    }
+
+    const raw = String(value).trim();
+
+    // SQLite CURRENT_TIMESTAMP stores UTC without a timezone suffix.
+    // Convert "2026-09-19 05:44:00" to
+    // "2026-09-19T05:44:00Z" before parsing.
+    const sqliteUtc = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/;
+
+    const normalized = sqliteUtc.test(raw)
+        ? `${raw.replace(' ', 'T')}Z`
+        : raw;
+
+    const date = new Date(normalized);
+
+    if (Number.isNaN(date.getTime())) {
+        return normalizeText(value);
+    }
+
     return date.toLocaleString('en-IN', {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', hour12: true,
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
     });
 }
 

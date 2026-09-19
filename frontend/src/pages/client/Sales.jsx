@@ -58,6 +58,8 @@ const Sales = () => {
     const [selectedSale, setSelectedSale] = useState(null);
     const [selectedSaleLoading, setSelectedSaleLoading] = useState(false);
     const [cancellingId, setCancellingId] = useState(null);
+    const [reprintingId, setReprintingId] = useState(null);
+    const [actionMessage, setActionMessage] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [period, setPeriod] = useState("today");
     const [customFrom, setCustomFrom] = useState("");
@@ -147,20 +149,40 @@ const Sales = () => {
     }
 
     async function cancelSale(id) {
+        if (!window.confirm("Cancel this sale? Its invoice and payment history will be retained, but it will no longer count towards sales totals.")) return;
+        setActionMessage("");
         setCancellingId(id);
         try {
             if (window.electronAPI?.sales) {
                 await window.electronAPI.sales.cancel(clientId, id, businessLocationId || null);
                 await loadSales();
-                if (selectedSale?.id === id) setSelectedSale(null);
+                if (selectedSale?.id === id) await viewSale(id);
+                setActionMessage("Sale cancelled successfully.");
                 return;
             }
             const res = await fetch(`${API_BASE_URL}/api/sales/${id}`, { method: "DELETE", headers: { Accept: "application/json", ...authHeaders } });
             if (!res.ok) { const json = await res.json().catch(() => ({})); throw new Error(json.message || "Failed to cancel sale"); }
-            setSalesList((prev) => prev.filter((sale) => sale.id !== id));
-            if (selectedSale?.id === id) setSelectedSale(null);
-        } catch (err) { console.error("Cancel sale error:", err); setSalesError(err.message); }
+            await loadSales();
+            if (selectedSale?.id === id) await viewSale(id);
+            setActionMessage("Sale cancelled successfully.");
+        } catch (err) { console.error("Cancel sale error:", err); setActionMessage(err.message); }
         finally { setCancellingId(null); }
+    }
+
+    async function reprintSale(id) {
+        if (!window.electronAPI?.sales?.reprint) return;
+        setActionMessage("");
+        setReprintingId(id);
+        try {
+            const hasKot = await window.electronAPI.sales.hasKot(clientId, id, businessLocationId || null);
+            const includeKot = hasKot ? window.confirm("Print KOT too?\n\nOK: Billing receipt + KOT\nCancel: Billing receipt only") : false;
+            const result = await window.electronAPI.sales.reprint(clientId, id, businessLocationId || null, includeKot);
+            const receipt = result?.receipt_print;
+            const kot = result?.kot_print;
+            const failures = [receipt, kot].filter(r => r && !r.success).map(r => r.message || "Printer failed");
+            setActionMessage(failures.length ? `Print issue: ${failures.join("; ")}` : "Reprint completed.");
+        } catch (err) { setActionMessage(err.message || "Reprint failed"); }
+        finally { setReprintingId(null); }
     }
 
     const filteredSales = useMemo(() => {
@@ -404,14 +426,27 @@ const Sales = () => {
                                         </div>
                                     </div>
 
-                                    {/* <button
-                                        onClick={() => cancelSale(selectedSale.id)}
-                                        disabled={cancellingId === selectedSale.id}
-                                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
-                                    >
-                                        <Trash2 size={13} />
-                                        {cancellingId === selectedSale.id ? "Cancelling..." : "Cancel Sale"}
-                                    </button> */}
+                                    {window.electronAPI?.sales?.reprint && (
+                                        <button
+                                            type="button"
+                                            onClick={() => reprintSale(selectedSale.id)}
+                                            disabled={reprintingId === selectedSale.id}
+                                            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-200 py-2 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-60"
+                                        >
+                                            {reprintingId === selectedSale.id ? "Printing..." : "Re-print Receipt"}
+                                        </button>
+                                    )}
+                                    {selectedSale.status !== "cancelled" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => cancelSale(selectedSale.id)}
+                                            disabled={cancellingId === selectedSale.id}
+                                            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+                                        >
+                                            {cancellingId === selectedSale.id ? "Cancelling..." : "Cancel Sale"}
+                                        </button>
+                                    )}
+                                    {actionMessage && <p role="status" className="text-xs text-zinc-600">{actionMessage}</p>}
                                 </div>
                             )}
                         </div>

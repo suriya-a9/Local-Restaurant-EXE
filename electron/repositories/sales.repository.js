@@ -73,7 +73,7 @@ function createSale(data) {
 
     const today = new Date();
     const businessDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-    const cashSession = db.prepare('SELECT status FROM pos_cash_sessions WHERE client_id=? AND business_location_id=? AND business_date=? LIMIT 1').get(data.client_id,data.business_location_id,businessDate);
+    const cashSession = db.prepare('SELECT status FROM pos_cash_sessions WHERE client_id=? AND business_location_id=? AND substr(business_date, 1, 10)=? LIMIT 1').get(data.client_id,data.business_location_id,businessDate);
     if (!cashSession || cashSession.status !== 'open') throw new Error("Open today's cash session before creating sales");
 
     const available = db.prepare(`SELECT 1 FROM products p
