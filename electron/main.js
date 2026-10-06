@@ -29,6 +29,7 @@ function createWindow() {
     const win = new BrowserWindow({
         width: 1400,
         height: 900,
+        autoHideMenuBar: true,
 
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
@@ -36,6 +37,10 @@ function createWindow() {
             nodeIntegration: false,
         },
     });
+
+    // Hide Electron's native File/Edit/View/Window menu in the desktop EXE.
+    win.setMenuBarVisibility(false);
+    win.setMenu(null);
 
     if (!app.isPackaged) {
         win.loadURL("http://localhost:5173");
