@@ -6,6 +6,8 @@ const {
     listClients,
     getClient,
     changeStatus,
+    changePassword,
+    deleteClient,
 } = require("./clients.controller");
 
 const {
@@ -18,6 +20,8 @@ router.post("/", addClient);
 router.get("/", listClients);
 router.get("/:id", getClient);
 router.post("/:id/change-status", changeStatus);
+router.patch("/:id/password", changePassword);
+router.delete("/:id", deleteClient);
 
 router.post("/:id/assign-plan", assignPlan);
 router.get("/:id/current-subscription", currentSubscription);

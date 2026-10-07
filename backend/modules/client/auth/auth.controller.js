@@ -6,6 +6,7 @@ const { findEmployeeLoginByName } = require("../employees/employees.model");
 const {
     hasActiveSubscription,
     getCurrentSubscription,
+    getSubscriptionHistory,
 } = require("../../admin/clientSubscriptions/clientSubscriptions.model");
 
 const login = async (req, res) => {
@@ -51,9 +52,15 @@ const login = async (req, res) => {
             }
 
             if (!(await hasActiveSubscription(employee.client_id))) {
+                const subscriptionHistory = await getSubscriptionHistory(employee.client_id);
+                const hasSubscribedBefore = subscriptionHistory.length > 0;
+
                 return res.status(403).json({
                     success: false,
-                    message: "Your subscription has expired. Please contact support to renew your plan.",
+                    message: hasSubscribedBefore
+                        ? "Your subscription has expired. Please contact support to renew your plan."
+                        : "Kindly subscribe to a plan to continue.",
+                    subscription_status: hasSubscribedBefore ? "expired" : "never_subscribed",
                 });
             }
 
@@ -117,9 +124,15 @@ const login = async (req, res) => {
         }
 
         if (!(await hasActiveSubscription(client.id))) {
+            const subscriptionHistory = await getSubscriptionHistory(client.id);
+            const hasSubscribedBefore = subscriptionHistory.length > 0;
+
             return res.status(403).json({
                 success: false,
-                message: "Your subscription has expired. Please contact support to renew your plan.",
+                message: hasSubscribedBefore
+                    ? "Your subscription has expired. Please contact support to renew your plan."
+                    : "Kindly subscribe to a plan to continue.",
+                subscription_status: hasSubscribedBefore ? "expired" : "never_subscribed",
             });
         }
 

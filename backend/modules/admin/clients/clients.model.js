@@ -52,6 +52,22 @@ const getAllClients = async () => {
     return result.rows;
 };
 
+const updateClientPassword = async (id, password) => {
+    const result = await pool.query(
+        `UPDATE clients SET password = $1, updated_at = NOW() WHERE id = $2 RETURNING id;`,
+        [password, id]
+    );
+    return result.rows[0];
+};
+
+const deleteClientById = async (id) => {
+    const result = await pool.query(
+        `DELETE FROM clients WHERE id = $1 RETURNING id, business_name, name;`,
+        [id]
+    );
+    return result.rows[0];
+};
+
 const updateClientStatus = async (id, status) => {
     const query = `
         UPDATE clients
@@ -73,4 +89,6 @@ module.exports = {
     findClientById,
     getAllClients,
     updateClientStatus,
+    updateClientPassword,
+    deleteClientById,
 };

@@ -6,6 +6,8 @@ const {
     findClientById,
     getAllClients,
     updateClientStatus,
+    updateClientPassword,
+    deleteClientById,
 } = require("./clients.model");
 
 const VALID_STATUSES = ["trial", "active", "inactive", "suspended"];
@@ -28,7 +30,9 @@ const addClient = async (req, res) => {
         }
 
         if (!name || !name.trim()) {
-            errors.name = "Name is required";
+            errors.name = "Username is required";
+        } else if (/\s/.test(name)) {
+            errors.name = "Username cannot contain spaces";
         }
 
         if (!email || !email.trim()) {
@@ -56,8 +60,8 @@ const addClient = async (req, res) => {
         if (existingClient) {
             return res.status(409).json({
                 success: false,
-                message: "A client with this name already exists",
-                errors: { name: "Name already in use" },
+                message: "A client with this username already exists",
+                errors: { name: "Username already in use" },
             });
         }
 
@@ -177,9 +181,43 @@ const changeStatus = async (req, res) => {
 };
 
 
+const changePassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { password, password_confirmation } = req.body;
+        if (!password || password.length < 6) {
+            return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
+        }
+        if (password !== password_confirmation) {
+            return res.status(400).json({ success: false, message: "Passwords do not match" });
+        }
+        if (!(await findClientById(id))) {
+            return res.status(404).json({ success: false, message: "Client not found" });
+        }
+        await updateClientPassword(id, await bcrypt.hash(password, 10));
+        return res.status(200).json({ success: true, message: "Client password updated successfully" });
+    } catch (error) {
+        console.error("Change client password error:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+const deleteClient = async (req, res) => {
+    try {
+        const deleted = await deleteClientById(req.params.id);
+        if (!deleted) return res.status(404).json({ success: false, message: "Client not found" });
+        return res.status(200).json({ success: true, message: "Client deleted successfully", data: deleted });
+    } catch (error) {
+        console.error("Delete client error:", error);
+        return res.status(500).json({ success: false, message: "Unable to delete client. Check related records and try again." });
+    }
+};
+
 module.exports = {
     addClient,
     listClients,
     getClient,
     changeStatus,
+    changePassword,
+    deleteClient,
 };

@@ -6,6 +6,10 @@ import {
     Check,
     Search,
     Power,
+    Eye,
+    EyeOff,
+    KeyRound,
+    Trash2,
 } from "lucide-react";
 import { useAuth } from "../../context/authContext";
 import Pagination from "../../components/Pagination";
@@ -28,6 +32,12 @@ const ClientList = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [statusLoading, setStatusLoading] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [passwordClient, setPasswordClient] = useState(null);
+    const [passwordForm, setPasswordForm] = useState({ password: "", password_confirmation: "" });
+    const [passwordSaving, setPasswordSaving] = useState(false);
+    const [showEditPassword, setShowEditPassword] = useState(false);
 
     const [error, setError] = useState(null);
     const [formErrors, setFormErrors] = useState({});
@@ -105,10 +115,11 @@ const ClientList = () => {
 
     function handleChange(e) {
         const { name, value } = e.target;
+        const nextValue = name === "name" ? value.replace(/\s/g, "") : value;
 
         setForm((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: nextValue,
         }));
 
         setFormErrors((prev) => ({
@@ -123,6 +134,12 @@ const ClientList = () => {
         setSaving(true);
         setError(null);
         setFormErrors({});
+
+        if (/\s/.test(form.name)) {
+            setFormErrors({ name: "Username cannot contain spaces." });
+            setSaving(false);
+            return;
+        }
 
         if (form.password !== form.password_confirmation) {
             setFormErrors({
@@ -224,6 +241,43 @@ const ClientList = () => {
         } finally {
             setStatusLoading(null);
         }
+    }
+
+    async function updatePassword(e) {
+        e.preventDefault();
+        if (!passwordClient) return;
+        if (passwordForm.password !== passwordForm.password_confirmation) {
+            setError("Passwords do not match.");
+            return;
+        }
+        setPasswordSaving(true);
+        setError(null);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/clients/${passwordClient.id}/password`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify(passwordForm),
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) throw new Error(json.message || "Failed to update password");
+            setPasswordClient(null);
+            setPasswordForm({ password: "", password_confirmation: "" });
+            setShowEditPassword(false);
+        } catch (err) { setError(err.message); } finally { setPasswordSaving(false); }
+    }
+
+    async function deleteClient(client) {
+        if (!window.confirm(`Delete ${client.business_name || client.name}? This will permanently remove the client and related data.`)) return;
+        setError(null);
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/clients/${client.id}`, {
+                method: "DELETE",
+                headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) throw new Error(json.message || "Failed to delete client");
+            await loadClients();
+        } catch (err) { setError(err.message); }
     }
 
     function getStatusClass(status) {
@@ -370,7 +424,7 @@ const ClientList = () => {
 
                         <div>
                             <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                                Client Name
+                                User Name
                             </label>
 
                             <input
@@ -379,7 +433,7 @@ const ClientList = () => {
                                 required
                                 value={form.name}
                                 onChange={handleChange}
-                                placeholder="John Doe"
+                                placeholder="john_doe"
                                 className={`mt-1.5 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-900 outline-none focus:border-[#40295C] ${formErrors.name
                                     ? "border-rose-400"
                                     : "border-zinc-200/80"
@@ -454,18 +508,20 @@ const ClientList = () => {
                                 Password
                             </label>
 
-                            <input
-                                type="password"
-                                name="password"
-                                required
-                                value={form.password}
-                                onChange={handleChange}
-                                placeholder="SecurePassword@123"
-                                className={`mt-1.5 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-900 outline-none focus:border-[#40295C] ${formErrors.password
-                                    ? "border-rose-400"
-                                    : "border-zinc-200/80"
-                                    }`}
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    required
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    placeholder="SecurePassword@123"
+                                    className={`mt-1.5 w-full rounded-xl border bg-white px-3.5 py-2.5 pr-11 text-sm font-medium text-zinc-900 outline-none focus:border-[#40295C] ${formErrors.password ? "border-rose-400" : "border-zinc-200/80"}`}
+                                />
+                                <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 mt-0.5 -translate-y-1/2 text-zinc-400 hover:text-[#40295C]" aria-label={showPassword ? "Hide password" : "Show password"}>
+                                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                                </button>
+                            </div>
 
                             {formErrors.password && (
                                 <p className="mt-1 text-xs text-rose-500">
@@ -483,18 +539,20 @@ const ClientList = () => {
                                 Confirm Password
                             </label>
 
-                            <input
-                                type="password"
-                                name="password_confirmation"
-                                required
-                                value={form.password_confirmation}
-                                onChange={handleChange}
-                                placeholder="Confirm password"
-                                className={`mt-1.5 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-900 outline-none focus:border-[#40295C] ${formErrors.password_confirmation
-                                    ? "border-rose-400"
-                                    : "border-zinc-200/80"
-                                    }`}
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    name="password_confirmation"
+                                    required
+                                    value={form.password_confirmation}
+                                    onChange={handleChange}
+                                    placeholder="Confirm password"
+                                    className={`mt-1.5 w-full rounded-xl border bg-white px-3.5 py-2.5 pr-11 text-sm font-medium text-zinc-900 outline-none focus:border-[#40295C] ${formErrors.password_confirmation ? "border-rose-400" : "border-zinc-200/80"}`}
+                                />
+                                <button type="button" onClick={() => setShowConfirmPassword((value) => !value)} className="absolute right-3 top-1/2 mt-0.5 -translate-y-1/2 text-zinc-400 hover:text-[#40295C]" aria-label={showConfirmPassword ? "Hide password" : "Show password"}>
+                                    {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                                </button>
+                            </div>
 
                             {formErrors.password_confirmation && (
                                 <p className="mt-1 text-xs text-rose-500">
@@ -646,6 +704,13 @@ const ClientList = () => {
                                         </select>
                                     </div>
 
+                                    <button type="button" onClick={() => { setPasswordClient(client); setPasswordForm({ password: "", password_confirmation: "" }); setShowEditPassword(false); setError(null); }} className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:border-[#40295C]/30 hover:text-[#40295C]">
+                                        <KeyRound size={14} /> Edit Password
+                                    </button>
+                                    <button type="button" onClick={() => deleteClient(client)} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50">
+                                        <Trash2 size={14} /> Delete
+                                    </button>
+
                                     {statusLoading === client.id && (
                                         <span className="text-xs text-zinc-400">
                                             Updating...
@@ -657,6 +722,22 @@ const ClientList = () => {
                     </div>
                 )}
             </div>
+            {passwordClient && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <form onSubmit={updatePassword} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                        <div className="flex items-center justify-between">
+                            <div><h2 className="text-lg font-bold text-zinc-900">Edit Client Password</h2><p className="mt-1 text-xs text-zinc-500">{passwordClient.name}</p></div>
+                            <button type="button" onClick={() => setPasswordClient(null)} className="text-zinc-400 hover:text-zinc-700"><X size={18} /></button>
+                        </div>
+                        <div className="mt-5 space-y-4">
+                            <div><label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">New Password</label><input type={showEditPassword ? "text" : "password"} required minLength={6} value={passwordForm.password} onChange={(e) => setPasswordForm((prev) => ({ ...prev, password: e.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 pr-11 text-sm outline-none focus:border-[#40295C]" /></div>
+                            <div><label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Confirm Password</label><div className="relative"><input type={showEditPassword ? "text" : "password"} required minLength={6} value={passwordForm.password_confirmation} onChange={(e) => setPasswordForm((prev) => ({ ...prev, password_confirmation: e.target.value }))} className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 pr-11 text-sm outline-none focus:border-[#40295C]" /><button type="button" onClick={() => setShowEditPassword((value) => !value)} className="absolute right-3 top-1/2 mt-0.5 -translate-y-1/2 text-zinc-400">{showEditPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></div>
+                        </div>
+                        <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setPasswordClient(null)} className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-600">Cancel</button><button type="submit" disabled={passwordSaving} className="rounded-xl bg-[#40295C] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{passwordSaving ? "Updating..." : "Update Password"}</button></div>
+                    </form>
+                </div>
+            )}
+
             {!loading && filteredClients.length > 0 && totalPages > 1 && (
                 <div className="mt-6">
                     <Pagination

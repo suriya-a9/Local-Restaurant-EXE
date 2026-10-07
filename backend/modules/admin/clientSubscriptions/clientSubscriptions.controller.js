@@ -1,4 +1,4 @@
-const { findClientById } = require("../clients/clients.model");
+const { findClientById, updateClientStatus } = require("../clients/clients.model");
 
 const {
     getPlanById,
@@ -79,6 +79,8 @@ const assignPlan = async (req, res) => {
             starts_at: startsAt,
             ends_at: endsAt,
         });
+
+        await updateClientStatus(clientId, "active");
 
         return res.status(201).json({
             success: true,
